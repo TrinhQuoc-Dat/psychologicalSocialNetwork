@@ -1,4 +1,9 @@
 \psychologicalSocialNetwork\frontend\socialnetworkapp\node_modules
+\psychologicalSocialNetwork\socialnetworkapp\esocialnetworkapi\resources\drivers
+\psychologicalSocialNetwork\socialnetworkapp\esocialnetworkapi\models
+
+*.gguf
+*.dll
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -207,3 +212,5 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+/socialnetworkapp/esocialnetworkapi/resources/drivers
+/socialnetworkapp/esocialnetworkapi/resources/drivers
