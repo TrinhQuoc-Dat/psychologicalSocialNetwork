@@ -13,8 +13,8 @@ const store = configureStore({
     auth: authReducer,
     posts: postReducer,
     users: userReducer,
-    chat: chatReducer,
     chatAI: chatAIReducer,
+    chat: chatReducer,
     notifications: notificationReducer,
   },
 });

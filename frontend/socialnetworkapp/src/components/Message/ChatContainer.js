@@ -19,8 +19,9 @@ const ChatContainer = ({
           onClose={() => onCloseChat(chat.chatId)}
           onSendMessage={(message) => onSendMessage(chat.chatId, message)}
           style={{
-            transform: `translateX(-${index * 310}px)`,
-            zIndex: index + 50
+            transform: `translateX(-${index * 350}px)`,
+            zIndex: index + 50,
+            
           }}
         />
       ))}

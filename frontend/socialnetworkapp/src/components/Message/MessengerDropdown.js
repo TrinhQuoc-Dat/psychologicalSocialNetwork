@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import { ChatService } from "../../services/chatService";
+import { ChatAIService } from "../../services/chatAiService";
 import {
   fetchAllUsers,
   fetchUserChats,
@@ -9,6 +10,7 @@ import {
   setSearchTerm,
   resetPagination,
 } from "../../features/chat/chatSlice";
+import { fetchUserChatAI, markAsRead} from "../../features/chat/chatAISlice";
 import { debounce } from "../../app/utils/debounceUtils";
 
 const MessengerDropdown = ({ currentUser, onClose, onOpenChat }) => {
@@ -22,6 +24,8 @@ const MessengerDropdown = ({ currentUser, onClose, onOpenChat }) => {
     pagination,
     searchTerm: reduxSearchTerm,
   } = useSelector((state) => state.chat);
+
+  const { chat, loadingAI, error, lastFetch, } = useSelector((state) => state.chatAI)
 
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
@@ -42,6 +46,12 @@ const MessengerDropdown = ({ currentUser, onClose, onOpenChat }) => {
     }, 300),
     [dispatch, token]
   );
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      dispatch(fetchUserChatAI(currentUser.id.toString()))
+    }
+  }, [currentUser])
 
   // Load initial data
   useEffect(() => {
@@ -95,12 +105,15 @@ const MessengerDropdown = ({ currentUser, onClose, onOpenChat }) => {
   }, [loading, loadingMore, pagination, reduxSearchTerm, dispatch, token]);
 
   // Combine user and chat data
-  const getCombinedData = useCallback(() => {
+  const getCombinedData = useMemo(() => {
     const combined = [];
 
+    console.log("state.chat.chats", chats);   // luôn array
+    console.log("state.chatAI.chat", chat); 
+
     // Add existing chats
-    chats.forEach((chat) => {
-      const otherParticipantId = chat.participants.find(
+    (Array.isArray(chats) ? chats : []).forEach((c) => {
+      const otherParticipantId = c.participants.find(
         (id) => id !== currentUser.id.toString()
       );
 
@@ -111,14 +124,14 @@ const MessengerDropdown = ({ currentUser, onClose, onOpenChat }) => {
           user.first_name !== "" && user.last_name != "" ? `${user.first_name} ${user.last_name}` : user.username;
         combined.push({
           type: "chat",
-          id: chat.id,
+          id: c.id,
           userId: user.id,
           name: fullName,
           avatar: user.avatar,
-          lastMessage: chat.lastMessage,
-          lastMessageTime: chat.lastMessageTime,
+          lastMessage: c.lastMessage,
+          lastMessageTime: c.lastMessageTime,
           hasUnread:
-            chat.participantInfo?.[currentUser.id.toString()]?.hasUnread,
+            c.participantInfo?.[currentUser.id.toString()]?.hasUnread,
           isOnline: false,
         });
       }
@@ -128,9 +141,9 @@ const MessengerDropdown = ({ currentUser, onClose, onOpenChat }) => {
     if (!reduxSearchTerm) {
       users.forEach((user) => {
         if (user.id.toString() === currentUser.id.toString()) return;
-
-        const hasChat = chats.some((chat) =>
-          chat.participants.includes(user.id.toString())
+        const safeChats = Array.isArray(chats) ? chats : [];
+        const hasChat = safeChats.some((c) =>
+          c.participants.includes(user.id.toString())
         );
         const fullName =
           user.first_name && user.last_name
@@ -164,13 +177,12 @@ const MessengerDropdown = ({ currentUser, onClose, onOpenChat }) => {
     });
   }, [chats, users, currentUser.id, reduxSearchTerm]);
 
-  const filteredItems = getCombinedData().filter(
+  const filteredItems = getCombinedData.filter(
     (item) =>
       item.name.toLowerCase().includes(reduxSearchTerm.toLowerCase()) ||
       (item.lastMessage &&
         item.lastMessage.toLowerCase().includes(reduxSearchTerm.toLowerCase()))
   );
-  console.log("filteredItems",filteredItems);
 
   const handleChatClick = async (item) => {
     if (item.type === "user") {
@@ -219,6 +231,37 @@ const MessengerDropdown = ({ currentUser, onClose, onOpenChat }) => {
       }
     }
 
+    onClose();
+  };
+
+  const handleChatAIClick = async (chatAI) => {
+    const result = await ChatAIService.getOrCreateChat(currentUser.id.toString());
+
+    if (result.success) {
+      console.log("resultAI", result)
+      console.log("ChatAI", chat);
+      onOpenChat({
+        chatId: result.chatId,
+        participant: {
+          id: "chat",
+          name: "Meta AI",
+          avatar: "https://www.shutterstock.com/image-vector/ai-generated-button-icon-artificial-600nw-2540221197.jpg",
+        },
+      });
+    }
+
+    if (chatAI.metadata.hasUnread) {
+      await ChatAIService.markMessagesAsRead(
+        chatAI.id,
+        currentUser.id.toString()
+      );
+      dispatch(
+        markAsRead({
+          chatId: chatAI.id, // chat_4
+          userId: currentUser.id.toString(), //4
+        })
+      );
+    }
     onClose();
   };
 
@@ -328,32 +371,33 @@ const MessengerDropdown = ({ currentUser, onClose, onOpenChat }) => {
           </div>
         ) : filteredItems.length > 0 ? (
           <>
-            <div className="flex items-center p-3 hover:bg-gray-50 border-b border-gray-100 transition-colors duration-150 cursor-pointer">
-                <div className="relative">
-                  <img
-                    src={"https://www.shutterstock.com/image-vector/ai-generated-button-icon-artificial-600nw-2540221197.jpg"}
-                    alt="icon AI"
-                    className="w-12 h-12 rounded-full mr-3 object-cover"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-baseline">
-                    <h4 className="font-semibold text-gray-800 truncate">
-                      Meta AI
-                    </h4>
-                    {/* {item.lastMessageTime && (
+            <div onClick={() => handleChatAIClick(chat)}
+              className="flex items-center p-3 hover:bg-gray-50 border-b border-gray-100 transition-colors duration-150 cursor-pointer">
+              <div className="relative">
+                <img
+                  src={"https://www.shutterstock.com/image-vector/ai-generated-button-icon-artificial-600nw-2540221197.jpg"}
+                  alt="icon AI"
+                  className="w-12 h-12 rounded-full mr-3 object-cover"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-baseline">
+                  <h4 className="font-semibold text-gray-800 truncate">
+                    Meta AI
+                  </h4>
+                  {chat?.metadata?.lastMessageTime && (
                       <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">
-                        {formatTime(item.lastMessageTime)}
+                        {formatTime(chat?.metadata?.lastMessageTime)}
                       </span>
-                    )} */}
-                  </div>
-                  <div className="flex items-center">
-                    <p className="text-sm text-gray-500 truncate">
-                     Bắt đầu hỏi đáp cùng AI
-                    </p>
-                  </div>
+                    )}
+                </div>
+                <div className="flex items-center">
+                  <p className="text-sm text-gray-500 truncate">
+                     {chat?.metadata?.lastMessage || "Bắt đầu hỏi đáp cùng AI"}
+                  </p>
                 </div>
               </div>
+            </div>
             {filteredItems.map((item) => (
               <div
                 key={item.id}

@@ -1,39 +1,31 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { ChatService } from "../../services/chatService";
-import { getAllUsers } from "../../services/userService";
+import { ChatAIService } from "../../services/chatAiService";
 
-const INITIAL_PAGINATION = {
-    page: 1,
-    size: 10,
-    totalPages: 1,
-    totalItems: 0,
-    hasMore: true,
-};
 
-// Lấy danh sách phiên chat của user
-export const fetchUserChats = createAsyncThunk(
-    "chat/fetchUserChats",
+// Lấy phiên chat của user
+export const fetchUserChatAI = createAsyncThunk(
+    "chat/fetchUserChatAI",
     async (userId, { rejectWithValue }) => {
         try {
-            const chats = await new Promise((resolve) => {
-                const unsubscribe = ChatService.subscribeToUserChats(
+            const chat = await new Promise((resolve) => {
+                const unsubscribe = ChatAIService.subscribeToUserChatAI(
                     userId,
-                    (chatsData) => {
-                        resolve(chatsData);
+                    (chatData) => {
+                        resolve(chatData);
                         unsubscribe();
                     }
                 );
             });
 
-            // Map lại dữ liệu để phù hợp với cây thư mục Firestore
-            return chats.map((chat) => ({
-                id: chat.id, // chat_<userId>_<sessionId>
+            if (!chat) return null;
+
+            return {
+                id: chat.id, // chat_<userId>
                 metadata: {
-                    sessionId: chat.metadata.sessionId,
-                    userId: chat.metadata.userId,
-                    createdAt: chat.metadata.createdAt?.toMillis?.() ?? chat.metadata.createdAt,
-                    updatedAt: chat.metadata.updatedAt?.toMillis?.() ?? chat.metadata.updatedAt,
-                    title: chat.metadata.title || "Cuộc trò chuyện mới",
+                    ...chat,
+                    createdAt: chat.createdAt?.toMillis?.() ?? chat.createdAt,
+                    updatedAt:chat.updatedAt?.toMillis?.() ?? chat.updatedAt,
+                    title: chat.title || "Cuộc trò chuyện mới",
                 },
                 messages: chat.messages
                     ? chat.messages.map((msg) => ({
@@ -41,82 +33,80 @@ export const fetchUserChats = createAsyncThunk(
                         createdAt: msg.createdAt?.toMillis?.() ?? msg.createdAt,
                     }))
                     : [],
-            }));
+            };
         } catch (error) {
             return rejectWithValue(error.message);
         }
     }
 );
 
+
 const chatAISlice = createSlice({
-    name: "chat",
+    name: "chatAI",
     initialState: {
-        chats: [], // [{id, metadata, messages}]
-        loading: false,
-        loadingMore: false,
+        chat: {
+            id: null,
+            metadata: {},
+            messages: []
+        },
+        loadingAI: false,
         error: null,
         lastFetch: null,
-        pagination: INITIAL_PAGINATION,
-        searchTerm: "",
     },
     reducers: {
-        addMessageToChat: (state, action) => {
-            const { chatId, message } = action.payload;
-            const chat = state.chats.find((c) => c.id === chatId);
-            if (chat) {
-                chat.messages.push({
-                    ...message,
-                    createdAt: message.createdAt?.toMillis?.() ?? message.createdAt,
+        addMessage: (state, action) => {
+            if (state.chat) {
+                state.chat.messages.push({
+                    ...action.payload,
+                    createdAt:
+                        action.payload.createdAt?.toMillis?.() ?? action.payload.createdAt,
                 });
-                chat.metadata.updatedAt = Date.now();
+                state.chat.metadata.updatedAt = Date.now();
             }
         },
-        markChatAsRead: (state, action) => {
-            const { chatId, userId } = action.payload;
-            const chat = state.chats.find((c) => c.id === chatId);
-            if (chat) {
-                // tuỳ bạn lưu unread state ở metadata hoặc messages
-                chat.metadata.hasUnread = false;
+        markAsRead: (state) => {
+            if (state.chat) {
+                state.chat.metadata.hasUnread = false;
             }
         },
-        setSearchTerm: (state, action) => {
-            state.searchTerm = action.payload;
-        },
-        resetPagination: (state) => {
-            state.pagination = INITIAL_PAGINATION;
-        },
+        resetChat: (state) => {
+            state.chat = null;
+            state.lastFetch = null;
+        }
     },
     extraReducers: (builder) => {
         builder
-            .addCase(fetchUserChats.pending, (state) => {
-                state.loading = true;
+            .addCase(fetchUserChatAI.pending, (state) => {
+                state.loadingAI = true;
             })
-            .addCase(fetchUserChats.fulfilled, (state, action) => {
-                state.chats = action.payload;
-                state.loading = false;
+            .addCase(fetchUserChatAI.fulfilled, (state, action) => {
+                state.chat = action.payload;
+                state.loadingAI = false;
                 state.lastFetch = Date.now();
             })
-            .addCase(fetchUserChats.rejected, (state, action) => {
+            .addCase(fetchUserChatAI.rejected, (state, action) => {
                 state.error = action.payload;
-                state.loading = false;
+                state.loadingAI = false;
             })
     },
 });
 
-export const { addMessageToChat, markChatAsRead, setSearchTerm, resetPagination } = chatAISlice.actions;
+export const { addMessage, markAsRead, resetChat } = chatAISlice.actions;
 
 export default chatAISlice.reducer;
 
 
 
 // {
-//   id: "chat_4_abc123",   // chat_<userId>_<sessionId>
+//   id: "chat_4",   // chat_<userId>
 //   metadata: {
-//     sessionId: "abc123",
 //     userId: "4",
 //     createdAt: 1755418547384,
 //     updatedAt: 1755419309266,
 //     title: "Chat với AI"
+//      lastMessage:"Thương em thật nhiều"
+//      lastMessageTime:1755679275613
+//      lastSenderId: "4"
 //   },
 //   messages: [
 //     { senderId: "4", content: "hello", createdAt: 1755419309266, type: "text" }

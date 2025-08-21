@@ -14,7 +14,6 @@ import {
   updateDoc,
   getDocs,
 } from "firebase/firestore";
-import BASE_URL from './baseUrl'; 
 
 export const ChatService = {
   /**

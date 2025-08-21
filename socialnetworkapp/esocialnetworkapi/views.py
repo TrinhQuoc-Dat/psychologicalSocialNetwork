@@ -8,7 +8,19 @@ from django.utils import timezone
 from django.db.models import Exists, OuterRef
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from rest_framework.views import APIView
+from esocialnetworkapi.qchatbot_minilm_l6_v2 import load_llm, create_qa_chain, read_vectors_db, create_prompt, find_faq_answer
 
+
+# load sẵn khi khởi động server để tránh load lại mỗi request
+llm = load_llm()
+TEMPLATE = """Sử dụng thông tin sau đây để trả lời câu hỏi. Nếu không có câu trả lời hãy tự sinh ra câu trả lời.
+Context: {context}
+Question: {question}
+Answer:"""
+prompt = create_prompt(TEMPLATE)
+db = read_vectors_db()
+qa_chain = create_qa_chain(prompt, llm, db)
 
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
     queryset = User.objects.filter(is_active=True)
@@ -599,4 +611,26 @@ class ContactViewSet(viewsets.ViewSet):
             "firebase_room_id": thread.firebase_room_id,
             "user": request.user.username
         })
+
+class ChatAPIView(APIView):
+    def post(self, request):
+        query = request.data.get("query", "")
+        if not query:
+            return Response({"error": "Thiếu query"}, status=status.HTTP_400_BAD_REQUEST)
+
+        faq_answer = find_faq_answer(query)
+        if faq_answer:
+            return Response({"result": faq_answer})
+
+        result = qa_chain.invoke({"query": query})
+        response = {
+            "result": result["result"],
+        }
+        # dev
+        if "question" not in result or result["question"] == True:
+            print("\n=== Nguồn tham chiếu ===")
+            for doc in result["source_documents"]:
+                print(f"- {doc.metadata.get('source', 'unknown')}")
+            print("\n----------------------\n")
+        return Response(response)
 

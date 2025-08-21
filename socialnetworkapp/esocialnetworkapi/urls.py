@@ -21,5 +21,7 @@ urlpatterns = [
     path('api/group-update/', views.GroupUpdateView.as_view(), name='group-update'),
     path('api/users/<int:user_id>/posts/', views.UserPostListView.as_view(), name='user-posts'),
     path('api/users/<int:id>', views.UserProfileView.as_view(), name='user-profile'),
+    path('api/chat/', views.ChatAPIView.as_view(), name="chat-api"),
+
 ]
 

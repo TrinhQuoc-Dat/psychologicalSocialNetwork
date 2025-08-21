@@ -1,3 +1,4 @@
+import axios from "axios";
 import { db } from "../filebase/config";
 import {
   collection,
@@ -14,26 +15,30 @@ import {
   updateDoc,
   getDocs,
 } from "firebase/firestore";
+import BASE_URL from "./baseUrl";
+import Authorization from "../components/until/AuthorizationComponent";
 
 export const ChatAIService = {
   /**
-   * Lấy danh sách các phiên chat AI của người dùng
+   * Lấy phiên chat AI của người dùng
    */
   subscribeToUserChatAI: (userId, callback) => {
-    const chatsRef = collection(db, "chatAI");
-    const q = query(
-      chatsRef,
-      where("userId", "==", userId),
-      orderBy("lastMessageTime", "desc")
-    );
+    const chatId = `chat_${userId}`;
+    const chatRef = doc(db, "chatAI", chatId);
 
-    return onSnapshot(q, (snapshot) => {
-      const chats = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        lastMessageTime: doc.data().lastMessageTime?.toDate()?.getTime() || 0,
-      }));
-      callback(chats);
+    return onSnapshot(chatRef, (snapshot) => {
+      if (!snapshot.exists()) {
+        callback(null);
+        return;
+      }
+
+      const data = snapshot.data();
+      callback({
+        id: snapshot.id,
+        ...data,
+        lastMessageTime: data.lastMessageTime?.toDate()?.getTime() || 0,
+        createdAt: data.createdAt?.toDate()?.getTime() || 0,
+      });
     });
   },
 
@@ -70,12 +75,32 @@ export const ChatAIService = {
 
       // Thêm tin nhắn
       const docRef = await addDoc(messagesRef, newMessage);
-
-      // Cập nhật document phiên chat
+      console.log("message", message)
+      // Cập nhật document phiên chat 
       await updateDoc(chatRef, {
-        lastMessage: message.content || "[Media]",
+        lastMessage: message.text || "[Media]",
         lastMessageTime: serverTimestamp(),
         lastSenderId: message.senderId,
+      });
+
+      // 2. Gọi API backend để lấy câu trả lời
+      const res = await axios.post(`${BASE_URL}/api/chat/`,
+        { query: message.text },
+        { headers: Authorization() },
+      ); 
+      // 3. Lưu response AI vào Firestore
+      const aiMessage = {
+        senderId: "chat",
+        text: res.data.result || "Xin lỗi, tôi chưa có câu trả lời.",
+        timestamp: serverTimestamp(),
+        status: "sent",
+      };
+      await addDoc(messagesRef, aiMessage);
+
+      await updateDoc(chatRef, {
+        lastMessage: aiMessage.text,
+        lastMessageTime: serverTimestamp(),
+        lastSenderId: "chat",
       });
 
       return { success: true, messageId: docRef.id };
@@ -88,21 +113,19 @@ export const ChatAIService = {
   /**
    * Tạo hoặc lấy 1 phiên chat AI
    */
-  getOrCreateChat: async (userId, sessionId, topic = "General") => {
+  getOrCreateChat: async (userId) => {
     try {
-      const chatId = `chat_${userId}_${sessionId}`;
+      const chatId = `chat_${userId}`;
       const chatRef = doc(db, "chatAI", chatId);
 
       const chatDoc = await getDoc(chatRef);
       if (!chatDoc.exists()) {
         await setDoc(chatRef, {
           userId,
-          sessionId,
           createdAt: serverTimestamp(),
           lastMessage: null,
           lastMessageTime: null,
           lastSenderId: null,
-          topic,
           status: "active",
         });
       }
@@ -115,7 +138,7 @@ export const ChatAIService = {
   },
 
   /**
-   * Đánh dấu toàn bộ tin nhắn AI đã đọc (optional)
+   * Đánh dấu toàn bộ tin nhắn đã đọc (optional)
    */
   markMessagesAsRead: async (chatId, userId) => {
     try {
@@ -145,17 +168,16 @@ export const ChatAIService = {
 // cấu trúc thư mục của chatAI
 
 // chatAI (collection)
-//  └── chat_<userId>_<sessionId> (document)     // mỗi user có thể có nhiều session chatbot
-//      ├── createdAt: Timestamp                 // thời điểm tạo session
+//  └── chat_<userId> (document)     // mỗi user có thể có 1 session chatbot
+//      ├── createdAt: Timestamp                 // thời điểm tạo
 //      ├── lastMessage: "..."                   // tin nhắn cuối cùng
 //      ├── lastMessageTime: Timestamp           // thời gian tin cuối cùng
 //      ├── lastSenderId: "<userId>" || "chat"   // ai gửi tin cuối
-//      ├── topic: "Tâm lý học"                  // chủ đề phiên chat
-//      ├── status: "active" || "closed"         // trạng thái session
 //      └── messages (subcollection)
 //          └── <messageId> (document)
 //              ├── senderId: "<userId>" || "chat"
-//              ├── text: "..."
+//              ├── content: "..."
 //              ├── timestamp: Timestamp
 //              ├── status: "sent" || "seen"
+//              ├── seenAt: time,
 

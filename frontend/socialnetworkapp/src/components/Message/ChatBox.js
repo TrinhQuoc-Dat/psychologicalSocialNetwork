@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { FiX, FiMinus, FiPaperclip, FiSmile, FiSend } from "react-icons/fi";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import ReactMarkdown from "react-markdown";
 
 const ChatBox = ({
   chat,
@@ -28,6 +29,7 @@ const ChatBox = ({
       await onSendMessage(newMessage);
     }
   };
+  console.log("chat", chat)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -45,19 +47,19 @@ const ChatBox = ({
 
   return (
     <div
-      className="fixed bottom-4 right-4 w-80 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col z-50"
+      className="fixed bottom-4 right-4 w-[360px] bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col z-50 h-[500px]"
       style={style}
     >
       {/* Header */}
       <div className="flex justify-between items-center p-3 bg-blue-600 text-white rounded-t-lg">
         <div className="flex items-center">
           <img
-            src={chat.participant.avatar || "/default-avatar.png"}
+            src={chat.participant? chat.participant.avatar : "https://t4.ftcdn.net/jpg/02/29/75/83/360_F_229758328_7x8jwCwjtBMmC6rgFzLFhZoEpLobB6L8.jpg"}
             alt={chat.participant.name}
             className="w-8 h-8 rounded-full mr-2 object-cover"
           />
           <div>
-            <div className="font-medium">{chat.participant.name}</div>
+            <div className="font-medium">{chat.participant? chat.participant.name: "Meta AI"}</div>
             <div className="text-xs">
               {isOnline ? (
                 <span className="text-green-300">Đang hoạt động</span>
@@ -81,28 +83,20 @@ const ChatBox = ({
       </div>
 
       {/* Messages */}
-      <div
-        className="flex-1 p-3 overflow-y-auto bg-gray-50"
-        style={{ maxHeight: "280px", minHeight: "280px" }}
-      >
+      <div className="flex-1 p-3 overflow-y-auto bg-gray-50 h-[600px]">
         {messages.length === 0 ? (
           <div className="text-center text-gray-500 py-4">
-            Bắt đầu cuộc trò chuyện với {chat.participant.name}
+            Bắt đầu cuộc trò chuyện với {chat.participant? chat.participant.name : "Meta AI"}
           </div>
         ) : (
           messages.map((msg, index) => {
             const fromCurrentUser = isCurrentUser(msg.senderId);
             const avatarUrl = fromCurrentUser
-              ? currentUser.avatar || "/default-avatar.png"
-              : chat.participant.avatar || "/default-avatar.png";
+              ? currentUser.avatar || "https://t4.ftcdn.net/jpg/02/29/75/83/360_F_229758328_7x8jwCwjtBMmC6rgFzLFhZoEpLobB6L8.jpg"
+              : chat.participant.avatar || "https://t4.ftcdn.net/jpg/02/29/75/83/360_F_229758328_7x8jwCwjtBMmC6rgFzLFhZoEpLobB6L8.jpg";
 
             return (
-              <div
-                key={index}
-                className={`mb-3 flex ${
-                  fromCurrentUser ? "justify-end" : "justify-start"
-                }`}
-              >
+              <div key={index} className={`mb-3 flex ${ fromCurrentUser ? "justify-end" : "justify-start"}`}>
                 {!fromCurrentUser && (
                   <img
                     src={avatarUrl}
@@ -117,7 +111,7 @@ const ChatBox = ({
                       : "bg-white border border-gray-200 text-gray-800"
                   }`}
                 >
-                  <div className="text-sm">{msg.text}</div>
+                  <div className="text-sm"><ReactMarkdown>{msg.text}</ReactMarkdown></div>
                   <div
                     className={`text-xs mt-1 text-right ${
                       fromCurrentUser ? "text-blue-100" : "text-gray-500"

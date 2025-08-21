@@ -2,6 +2,14 @@
 \psychologicalSocialNetwork\socialnetworkapp\esocialnetworkapi\resources\drivers
 \psychologicalSocialNetwork\socialnetworkapp\esocialnetworkapi\models
 
+# Ignore MacOS system files
+.DS_Store
+
+# Ignore Chrome browser binaries
+socialnetworkapp/esocialnetworkapi/resources/drivers/chrome-win64/
+socialnetworkapp/esocialnetworkapi/resources/drivers/chromedriver.exe
+socialnetworkapp/esocialnetworkapi/resources/drivers/tesseract.exe
+
 *.gguf
 *.dll
 

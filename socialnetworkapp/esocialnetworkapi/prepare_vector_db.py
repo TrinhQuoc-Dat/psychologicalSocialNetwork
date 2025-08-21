@@ -1,8 +1,8 @@
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
+from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader, Docx2txtLoader
 from langchain_community.vectorstores import FAISS
+from langchain_openai import OpenAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.embeddings import OpenAIEmbeddings
 
 
 # Khai bao bien
@@ -12,7 +12,7 @@ vector_db_path = "vectorstores/db_faiss"
 # Embedding model dùng HuggingFace
 embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
-embedding_model_openai = OpenAIEmbeddings()
+# embedding_model_openai = OpenAIEmbeddings()
 
 
 # Ham 1. Tao ra vector DB tu 1 doan text
@@ -39,29 +39,28 @@ def create_db_from_text():
     db.save_local(vector_db_path)
     return db
 
+
 # Ham 2. Tao vector DB tu cac file PDF
-def create_db_from_files():
-    loader = DirectoryLoader(pdf_data_path, glob="*.pdf", loader_cls=PyPDFLoader)
-    documents = loader.load()
+def create_db_from_files_openai():
+     # Đọc PDF
+    loader_pdf = DirectoryLoader(pdf_data_path, glob="*.pdf", loader_cls=PyPDFLoader)
+    documents_pdf = loader_pdf.load()
+
+    # Đọc DOCX
+    loader_docx = DirectoryLoader(pdf_data_path, glob="*.docx", loader_cls=Docx2txtLoader)
+    documents_docx = loader_docx.load()
+
+    # Gộp tất cả lại
+    documents = documents_pdf + documents_docx
 
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)
     chunks = text_splitter.split_documents(documents)
 
     db = FAISS.from_documents(chunks, embedding_model)
     db.save_local(vector_db_path)
-    return db
-
-# Ham 2. Tao vector DB tu cac file PDF
-def create_db_from_files_openai():
-    loader = DirectoryLoader(pdf_data_path, glob="*.pdf", loader_cls=PyPDFLoader)
-    documents = loader.load()
-
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)
-    chunks = text_splitter.split_documents(documents)
-
-    db = FAISS.from_documents(chunks, embedding_model_openai)
-    db.save_local(vector_db_path)
+    print(f"FAISS DB đã được lưu tại: {vector_db_path}")
     return db
 
 # Gọi hàm
-print(create_db_from_files())
+if __name__ == "__main__":
+    db = create_db_from_files_openai()
