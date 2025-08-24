@@ -59,7 +59,7 @@ const ChatBox = ({
             className="w-8 h-8 rounded-full mr-2 object-cover"
           />
           <div>
-            <div className="font-medium">{chat.participant? chat.participant.name: "Meta AI"}</div>
+            <div className="font-medium">{chat.participant? chat.participant.name: "MindCare"}</div>
             <div className="text-xs">
               {isOnline ? (
                 <span className="text-green-300">Đang hoạt động</span>

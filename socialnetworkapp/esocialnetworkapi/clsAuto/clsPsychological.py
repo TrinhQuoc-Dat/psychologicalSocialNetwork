@@ -8,7 +8,7 @@ import requests
 from selenium.webdriver import ActionChains, Keys
 from selenium.webdriver.common.by import By
 
-from lib import libSupport
+from libpy import libSupport
 
 
 class clsPsychological:

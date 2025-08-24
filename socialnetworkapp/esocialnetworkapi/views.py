@@ -9,7 +9,7 @@ from django.db.models import Exists, OuterRef
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
-from esocialnetworkapi.qchatbot_minilm_l6_v2 import load_llm, create_qa_chain, read_vectors_db, create_prompt, find_faq_answer
+from esocialnetworkapi.qchatbot_minilm_l6_v2 import load_llm, create_qa_chain, read_vectors_db, create_prompt, find_faq_answer, answer_query
 
 
 # load sẵn khi khởi động server để tránh load lại mỗi request
@@ -622,7 +622,7 @@ class ChatAPIView(APIView):
         if faq_answer:
             return Response({"result": faq_answer})
 
-        result = qa_chain.invoke({"query": query})
+        result = answer_query(qa_chain=qa_chain, query=query, llm=llm)
         response = {
             "result": result["result"],
         }
