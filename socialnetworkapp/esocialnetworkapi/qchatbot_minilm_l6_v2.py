@@ -10,13 +10,15 @@ import os
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(BASE_DIR, "esocialnetworkapi\\vectorstores", "db_faiss")
-DATA_PATH = os.path.join(BASE_DIR, "esocialnetworkapi\\resources\data")
+DB_PATH = os.path.join(BASE_DIR, "esocialnetworkapi", "vectorstores", "db_faiss")
+DATA_PATH = os.path.join(BASE_DIR, "esocialnetworkapi", "resources", "data")
+FAQ_PATH = os.path.join(DATA_PATH, "question.json")
+
 
 # Load .env
 load_dotenv()
 
-FAQ = libSupport.getFile(DATA_PATH + "\question.json")
+FAQ = libSupport.getFile(FAQ_PATH)
 if FAQ != None:
     FAQ = libSupport.json_load(FAQ)
 
