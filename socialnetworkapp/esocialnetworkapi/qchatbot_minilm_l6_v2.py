@@ -4,13 +4,13 @@ from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_community.vectorstores import FAISS
 from difflib import SequenceMatcher
-from esocialnetworkapi.libpy import libSupport
+from libpy import libSupport
 from dotenv import load_dotenv
 import os
 
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "esocialnetworkapi\\vectorstores", "db_faiss")
+DB_QUERY_PATH = os.path.join(BASE_DIR, "esocialnetworkapi\\vectorstores", "db_data_query_faiss")
 DATA_PATH = os.path.join(BASE_DIR, "esocialnetworkapi\\resources\data")
 
 # Load .env
@@ -24,6 +24,7 @@ data_query = libSupport.getFile(DATA_PATH + "\\trangtamly_dataset.json")
 if data_query != None:
     data_query = libSupport.json_load(data_query)
 
+
 # Hàm tìm câu trả lời FAQ theo độ giống nhau
 def find_faq_answer(query, threshold=0.85):
     for q, ans in FAQ.items():
@@ -33,7 +34,7 @@ def find_faq_answer(query, threshold=0.85):
     return None
 
 # Hàm tìm bộ câu hỏi và câu trả lời khá tương đồng
-def find_data_answer(query, threshold=0.75):
+def find_data_answer_vector(query, threshold=0.5):
     for q, ans in data_query.items():
         ratio = SequenceMatcher(None, query.lower(), q).ratio()
         if ratio >= threshold:
@@ -41,7 +42,7 @@ def find_data_answer(query, threshold=0.75):
     return None
 
 # Hàm xử lý 1 câu hỏi
-def answer_query(qa_chain, query, llm):
+def answer_query(query, llm, template, qa_chain):
     faq_answer = find_faq_answer(query)
     if faq_answer:
         data = {}
@@ -49,35 +50,41 @@ def answer_query(qa_chain, query, llm):
         data["question"] = False
         return data
     else:
-        data_answer = find_data_answer(query=query)
-        if data_answer:
-            # gửi dữ liệu lên chatgpt để trả lời
-            result = ask_ai_content(data_answer=data_answer, query=query, llm=llm)
+        data_answer = find_data_answer_vector(query=query)
+        # tìm trong vector DB gốc
+        rag_context = ""
+        rag_result = qa_chain.invoke({"query": query})
+       
+        if "source_documents" in rag_result:
+            rag_context = "\n".join([
+                " ".join(doc.page_content.split())
+                for doc in rag_result["source_documents"]
+            ])
 
-            return {
-                "result": result.content,
-                "question": False,
-            }
-        return ask_ai(qa_chain, query)
+        if data_answer or rag_context:
+            context = ""
+            if data_answer:
+                context += f"\n[Dữ liệu Từ 1 cá nhân viết ]\n{data_answer}"
+            if rag_context:
+                context += f"\n[Dữ liệu Gốc]\n{rag_context}"
+
+            # dev
+            print("\n=== Nguồn tham chiếu ===")
+            for doc in rag_result["source_documents"]:
+                print(f"- {doc.metadata.get('source', 'unknown')}")
+            print("\n----------------------\n")
+            print("context", context)
+            
+            result = ask_ai_content(context=context, query=query, llm=llm, template=template)
+            return {"result": result.content, "question": False}
+
+        return rag_result
 
 
-def ask_ai_content(data_answer, query, llm):
-    template = """Sử dụng thông tin sau đây để trả lời câu hỏi của người dùng.
-                Nếu không có câu trả lời chính xác thì hãy tự tổng hợp câu trả lời dựa trên thông tin.
-
-                Thông tin (context): 
-                {context}
-
-                Câu hỏi: {question}
-
-                Trả lời:"""
-    prompt = PromptTemplate(
-        template=template,
-        input_variables=["context", "question"]
-    )
-
+def ask_ai_content(context, query, llm, template):
+    prompt = create_prompt(template=template)
     chain = prompt | llm
-    result = chain.invoke({"context": data_answer, "question": query})
+    result = chain.invoke({"context": context, "question": query})
     return result
 
 # Sử dụng ChatGPT (GPT-4 hoặc 3.5)
@@ -110,39 +117,52 @@ def read_vectors_db():
     db = FAISS.load_local(DB_PATH, embedding_model, allow_dangerous_deserialization=True)
     return db
 
-
-# Hàm gọi AI (LLM) nếu không có trong FAQ
-def ask_ai(qa_chain, query):
-    return qa_chain.invoke({"query": query})
-
+def read_data_query_vector_db():
+    embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    db = FAISS.load_local(DB_QUERY_PATH, embedding_model, allow_dangerous_deserialization=True)
+    return db
 
 # === Chạy thử ===
 if __name__ == "__main__":
     pass
 
-    # TEMPLATE = """Sử dụng thông tin sau đây để trả lời câu hỏi. Nếu không có câu trả lời hãy tự sinh ra câu trả lời.".
-    # Context: {context}
-    # Question: {question}
-    # Answer:"""
+    TEMPLATE = """
+        Bạn là một chuyên gia tâm lý. Hãy dựa vào context để trả lời ngắn gọn, rõ ràng (tối đa 3-5 câu), phù hợp với câu hỏi người dùng.  
+        Yêu cầu:
+        1. Đồng cảm với cảm xúc của người dùng, giọng văn nhẹ nhàng, không phán xét. 
+        2. Nếu không có đủ thông tin, hãy thừa nhận và đưa ra lời khuyên tổng quát.
+        3. Nếu phát hiện người dùng người dùng bị stress, căng thẳng, buồn chán,... hãy đưa ra gợi ý thực tế, tích cực, an toàn (ví dụ: hít thở sâu, viết nhật ký, tập thể dục, nói chuyện với người tin tưởng,...).
+        4. Nếu phát hiện người dùng có ý nghĩ tự làm hại bản thân (người dùng nói về tự tử, tự làm hại bản thân, hoặc nguy hiểm tới tính mạng), 
+                KHÔNG đưa ra cách tự xử lý mà hãy khuyến khích họ tìm sự giúp đỡ từ chuyên gia tâm lý, 
+                gọi ngay số điện thoại hỗ trợ khẩn cấp tại địa phương, hoặc liên hệ với bạn bè/người thân đáng tin cậy.
+        5. Nếu là câu hỏi về lý thuyết chỉ cần trả lời câu hỏi, không đưa ra lời khuyên.
+        6. Không bao giờ thay thế cho bác sĩ hoặc nhà trị liệu chuyên nghiệp.  
 
-    # llm = load_llm()
-    # prompt = create_prompt(TEMPLATE)
-    # db = read_vectors_db()
+        Thông tin (context):  {context}
 
-    # qa_chain = create_qa_chain(prompt, llm, db)
+        Câu hỏi: {question}
 
-    # while True:
-    #     query = input("Nhập câu hỏi: ")
-    #     if query.lower().strip() == "exit":
-    #         print("Thoát chương trình.")
-    #         break
+        Trả lời:
+        """
 
-    #     result = answer_query(qa_chain, query)
-    #     print(result)
-    #     print("\n=== Trả lời ===")
-    #     print(result["result"])
-    #     if "question" not in result or result["question"] == True:
-    #         print("\n=== Nguồn tham chiếu ===")
-    #         for doc in result["source_documents"]:
-    #             print(f"- {doc.metadata.get('source', 'unknown')}")
-    #         print("\n----------------------\n")
+    llm = load_llm()
+    prompt = create_prompt(TEMPLATE)
+    db = read_vectors_db()
+
+    qa_chain = create_qa_chain(prompt, llm, db)
+
+    while True:
+        query = input("Nhập câu hỏi: ")
+        if query.lower().strip() == "exit":
+            print("Thoát chương trình.")
+            break
+
+        result = answer_query(query=query, llm=llm, template=TEMPLATE, qa_chain=qa_chain)
+        print(result)
+        print("\n=== Trả lời ===")
+        print(result["result"])
+        if "question" not in result or result["question"] == True:
+            print("\n=== Nguồn tham chiếu ===")
+            for doc in result["source_documents"]:
+                print(f"- {doc.metadata.get('source', 'unknown')}")
+            print("\n----------------------\n")

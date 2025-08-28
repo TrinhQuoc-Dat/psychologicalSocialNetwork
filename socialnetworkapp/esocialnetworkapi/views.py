@@ -14,10 +14,25 @@ from esocialnetworkapi.qchatbot_minilm_l6_v2 import load_llm, create_qa_chain, r
 
 # load sẵn khi khởi động server để tránh load lại mỗi request
 llm = load_llm()
-TEMPLATE = """Sử dụng thông tin sau đây để trả lời câu hỏi. Nếu không có câu trả lời hãy tự sinh ra câu trả lời.
-Context: {context}
-Question: {question}
-Answer:"""
+TEMPLATE = """
+    Bạn là một chuyên gia tâm lý. Hãy dùng thông tin trong context để trả lời.
+    Yêu cầu:
+    1. Luôn bắt đầu bằng việc công nhận cảm xúc của người dùng.
+    2. Giữ giọng văn nhẹ nhàng, đồng cảm, không phán xét.
+    3. Đưa ra gợi ý thực tế, tích cực, an toàn (ví dụ: hít thở sâu, viết nhật ký, tập thể dục, nói chuyện với người tin tưởng).
+    4. Nếu không có đủ thông tin, hãy thừa nhận và đưa ra lời khuyên tổng quát.
+    5. Nếu phát hiện người dùng có ý nghĩ tự làm hại bản thân  (người dùng nói về tự tử, tự làm hại bản thân, hoặc nguy hiểm tới tính mạng), 
+            KHÔNG đưa ra cách tự xử lý mà hãy khuyến khích họ tìm sự giúp đỡ từ chuyên gia tâm lý, 
+            gọi ngay số điện thoại hỗ trợ khẩn cấp tại địa phương, hoặc liên hệ với bạn bè/người thân đáng tin cậy.
+    7. Không bao giờ thay thế cho bác sĩ hoặc nhà trị liệu chuyên nghiệp.  
+
+    Thông tin (context):  {context}
+
+    Câu hỏi: {question}
+
+    Trả lời:
+    """
+
 prompt = create_prompt(TEMPLATE)
 db = read_vectors_db()
 qa_chain = create_qa_chain(prompt, llm, db)
@@ -618,19 +633,18 @@ class ChatAPIView(APIView):
         if not query:
             return Response({"error": "Thiếu query"}, status=status.HTTP_400_BAD_REQUEST)
 
+        if "tự tử" in query or "muốn chết" in query:
+            return Response({"result": "Tôi rất tiếc khi nghe điều này. Hãy tìm ngay sự giúp đỡ từ chuyên gia tâm lý hoặc gọi số khẩn cấp tại địa phương. Bạn không đơn độc."})
+        # Tiền sử lý câu hỏi
+        
         faq_answer = find_faq_answer(query)
         if faq_answer:
             return Response({"result": faq_answer})
 
-        result = answer_query(qa_chain=qa_chain, query=query, llm=llm)
+        result = answer_query(query=query, llm=llm, template=TEMPLATE, qa_chain=qa_chain)
         response = {
             "result": result["result"],
         }
-        # dev
-        if "question" not in result or result["question"] == True:
-            print("\n=== Nguồn tham chiếu ===")
-            for doc in result["source_documents"]:
-                print(f"- {doc.metadata.get('source', 'unknown')}")
-            print("\n----------------------\n")
+
         return Response(response)
 
