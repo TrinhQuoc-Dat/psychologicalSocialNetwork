@@ -105,8 +105,6 @@ class UGroup(models.Model):
     active = models.BooleanField(default=True)
 
 # ================ Bài Đăng, like, comment===============
-
-
 class Post(BaseModel):
     content = models.TextField()
     lock_comment = models.BooleanField(default=False)

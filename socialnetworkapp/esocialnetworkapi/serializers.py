@@ -7,7 +7,7 @@ class UserSerializer(serializers.ModelSerializer):
     cover = serializers.SerializerMethodField()
     class Meta:
         model = User
-        fields = ['id','first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'role', 'cover']
+        fields = ['id','first_name', 'last_name', 'username', 'email', 'avatar', 'role', 'cover']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
@@ -37,6 +37,18 @@ class UserSerializer(serializers.ModelSerializer):
             return obj.cover.url
         return None
 
+class UserSearchSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+    class Meta:
+        model = User
+        fields = ['id','first_name', 'last_name', 'username','avatar']
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def get_avatar(self, obj):
+        if obj.avatar:
+            return obj.avatar.url
+        return None
+    
 
 class ContactSerializer(serializers.ModelSerializer):
     from_user = UserSerializer(read_only=True)
@@ -102,6 +114,7 @@ class PostSerializer(serializers.ModelSerializer):
             return False
         return Reaction.objects.filter(post=obj, user=user, deleted_date__isnull=True).exists()
     
+
 
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

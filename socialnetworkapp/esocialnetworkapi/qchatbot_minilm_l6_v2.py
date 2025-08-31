@@ -4,7 +4,7 @@ from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_community.vectorstores import FAISS
 from difflib import SequenceMatcher
-from libpy import libSupport
+from esocialnetworkapi.libpy import libSupport
 from dotenv import load_dotenv
 import os
 
@@ -20,7 +20,7 @@ FAQ = libSupport.getFile(FAQ_PATH)
 if FAQ != None:
     FAQ = libSupport.json_load(FAQ)
 
-data_query = libSupport.getFile(DATA_PATH + "\\trangtamly_dataset.json")
+data_query = libSupport.getFile(os.path.join(DATA_PATH, "trangtamly_dataset.json"))
 if data_query != None:
     data_query = libSupport.json_load(data_query)
 
@@ -91,8 +91,7 @@ def ask_ai_content(context, query, llm, template):
 def load_llm():
     llm = ChatOpenAI(
         model_name="gpt-4o-mini",   # vẫn dùng GPT-4o-mini để trả lời
-        temperature=0.01,
-        openai_api_key=os.environ["OPENAI_API_KEY"]
+        temperature=0.01
     )
     return llm
 
@@ -113,7 +112,7 @@ def create_qa_chain(prompt, llm, db):
 
 # Tải vector DB (sử dụng HuggingFaceEmbeddings giống lúc tạo)
 def read_vectors_db():
-    embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
     db = FAISS.load_local(DB_PATH, embedding_model, allow_dangerous_deserialization=True)
     return db
 

@@ -9,22 +9,22 @@ from django.db.models import Exists, OuterRef
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
 from esocialnetworkapi.qchatbot_minilm_l6_v2 import load_llm, create_qa_chain, read_vectors_db, create_prompt, find_faq_answer, answer_query
-
 
 # load sẵn khi khởi động server để tránh load lại mỗi request
 llm = load_llm()
 TEMPLATE = """
-    Bạn là một chuyên gia tâm lý. Hãy dùng thông tin trong context để trả lời.
+    Bạn là một chuyên gia tâm lý. Hãy dựa vào context để trả lời ngắn gọn, rõ ràng (tối đa 3-5 câu), phù hợp với câu hỏi người dùng.  
     Yêu cầu:
-    1. Luôn bắt đầu bằng việc công nhận cảm xúc của người dùng.
-    2. Giữ giọng văn nhẹ nhàng, đồng cảm, không phán xét.
-    3. Đưa ra gợi ý thực tế, tích cực, an toàn (ví dụ: hít thở sâu, viết nhật ký, tập thể dục, nói chuyện với người tin tưởng).
-    4. Nếu không có đủ thông tin, hãy thừa nhận và đưa ra lời khuyên tổng quát.
-    5. Nếu phát hiện người dùng có ý nghĩ tự làm hại bản thân  (người dùng nói về tự tử, tự làm hại bản thân, hoặc nguy hiểm tới tính mạng), 
+    1. Đồng cảm với cảm xúc của người dùng, giọng văn nhẹ nhàng, không phán xét. 
+    2. Nếu không có đủ thông tin, hãy thừa nhận và đưa ra lời khuyên tổng quát.
+    3. Nếu phát hiện người dùng người dùng bị stress, căng thẳng, buồn chán,... hãy đưa ra gợi ý thực tế, tích cực, an toàn (ví dụ: hít thở sâu, viết nhật ký, tập thể dục, nói chuyện với người tin tưởng,...).
+    4. Nếu phát hiện người dùng có ý nghĩ tự làm hại bản thân (người dùng nói về tự tử, tự làm hại bản thân, hoặc nguy hiểm tới tính mạng), 
             KHÔNG đưa ra cách tự xử lý mà hãy khuyến khích họ tìm sự giúp đỡ từ chuyên gia tâm lý, 
             gọi ngay số điện thoại hỗ trợ khẩn cấp tại địa phương, hoặc liên hệ với bạn bè/người thân đáng tin cậy.
-    7. Không bao giờ thay thế cho bác sĩ hoặc nhà trị liệu chuyên nghiệp.  
+    5. Nếu là câu hỏi về lý thuyết chỉ cần trả lời câu hỏi, không đưa ra lời khuyên.
+    6. Không bao giờ thay thế cho bác sĩ hoặc nhà trị liệu chuyên nghiệp.  
 
     Thông tin (context):  {context}
 
@@ -32,6 +32,7 @@ TEMPLATE = """
 
     Trả lời:
     """
+
 
 prompt = create_prompt(TEMPLATE)
 db = read_vectors_db()
@@ -51,6 +52,26 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIVi
     @action(methods=['get'], url_path='current-user', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
         return Response(serializers.UserSerializer(request.user).data)
+    
+
+    @action(methods=['get'], detail=False, url_path='search')
+    def search(self, request):
+        query = request.GET.get("q", "").strip()
+        if not query:
+            return Response({"error": "Vui lòng nhập từ khóa"}, status=400)
+
+        users = User.objects.filter(
+            Q(username__icontains=query) |
+            Q(first_name__icontains=query) |
+            Q(last_name__icontains=query)
+        )
+        # Phân trang
+        paginator = PageNumberPagination()
+        paginator.page_size = 5  # số bản ghi trên 1 trang, có thể chỉnh
+        result_page = paginator.paginate_queryset(users, request)
+
+        data = serializers.UserSearchSerializer(result_page, many=True).data
+        return paginator.get_paginated_response(data)
     
 
 # Tạo group

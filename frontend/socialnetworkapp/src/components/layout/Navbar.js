@@ -192,33 +192,30 @@ const Navbar = ({ onOpenChat }) => {
         <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2">
           <Link
             to="/home"
-            className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${
-              currentPath === "/home"
+            className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${currentPath === "/home"
                 ? "bg-blue-100 text-blue-600 font-semibold"
                 : "text-gray-700 hover:bg-gray-100 hover:text-blue-500"
-            }`}
+              }`}
           >
             <Home className="w-5 h-5" />
             <span>Trang chủ</span>
           </Link>
           <Link
             to="/survey"
-            className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${
-              currentPath === "/survey"
+            className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${currentPath === "/survey"
                 ? "bg-blue-100 text-blue-600 font-semibold"
                 : "text-gray-700 hover:bg-gray-100 hover:text-blue-500"
-            }`}
+              }`}
           >
             <BarChart2 className="w-5 h-5" />
             <span>Khảo sát</span>
           </Link>
           <Link
             to="/events"
-            className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${
-              currentPath === "/events"
+            className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${currentPath === "/events"
                 ? "bg-blue-100 text-blue-600 font-semibold"
                 : "text-gray-700 hover:bg-gray-100 hover:text-blue-500"
-            }`}
+              }`}
           >
             <Calendar className="w-5 h-5" />
             <span>Sự kiện</span>
@@ -236,11 +233,10 @@ const Navbar = ({ onOpenChat }) => {
                     setShowMessenger(!showMessenger);
                     setShowNotifications(false);
                   }}
-                  className={`p-2 rounded-full transition-colors duration-200 relative ${
-                    showMessenger
+                  className={`p-2 rounded-full transition-colors duration-200 relative ${showMessenger
                       ? "bg-blue-100 text-blue-600"
                       : "hover:bg-gray-300 active:bg-gray-400 text-gray-600"
-                  }`}
+                    }`}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
