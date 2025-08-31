@@ -26,8 +26,8 @@ import { useSelector } from "react-redux";
 
 moment.locale("vi");
 
-const PostItem = ({ post }) => {
-  console.log("posts: ", post);
+const PostItem = ({ post, survey_id }) => {
+  console.log("posts: ", survey_id);
 
   const user = useSelector((state) => state.auth);
   const [showComment, setShowComment] = useState(false);
@@ -300,7 +300,7 @@ const PostItem = ({ post }) => {
         </button>
         {/* )} */}
 
-        {post.survey_post && (
+        {(post.survey_post || survey_id) && (
           <button
             onClick={() => setStatsModalOpen(true)}
             className="flex items-center justify-center gap-2 w-full py-2 rounded-md 
@@ -343,12 +343,11 @@ const PostItem = ({ post }) => {
           postId={post.id}
         />
       )}
-      {post.survey_post && (
+      {(post.survey_post || survey_id) && (
         <SurveyStatsModal
           open={statsModalOpen}
           onClose={() => setStatsModalOpen(false)}
-          surveyPostId={post.survey_post.id}
-          token={localStorage.getItem("token")}
+          surveyPostId={post.survey_post? post.survey_post.id : survey_id}
         />
       )}
     </div>

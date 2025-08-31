@@ -2,8 +2,9 @@ import { useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import { FiCamera } from "react-icons/fi";
 import ReactCrop from "react-image-crop";
+import { toast } from "react-toastify";
 import "react-image-crop/dist/ReactCrop.css";
-import { updateUserAvatarOrCover } from "../../services/userService";
+import { updateUserAvatarOrCover, sendFriendRequest } from "../../services/userService";
 
 const ProfileHeader = ({ user }) => {
   const avatarInputRef = useRef(null);
@@ -11,14 +12,14 @@ const ProfileHeader = ({ user }) => {
   const { user: authUser, token } = useSelector((state) => state.auth);
   const isOwner = authUser?.id === user?.id;
   const [isUpdating, setIsUpdating] = useState(false);
+  // tạm thời để theo doi, bỏ theo doi phát triển sau
+  const [isFollowing, setIsFollowing] = useState(user?.is_followed);
 
   // State cho crop ảnh
   const [showModal, setShowModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [crop, setCrop] = useState({ aspect: 1 / 1 });
   const [type, setType] = useState("avatar"); // 'avatar' hoặc 'cover'
-
-  console.log("user: ", user);
 
   const handleImageChange = async (e, imageType) => {
     const file = e.target.files[0];
@@ -38,6 +39,16 @@ const ProfileHeader = ({ user }) => {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleFollow = async () => {
+    try {
+      const res = await sendFriendRequest(user.id);
+      setIsFollowing(true);
+      toast.success(res.message || "Đã gửi lời mời kết bạn!");
+    } catch (err) {
+      toast.error(err.message || "Không thể gửi lời mời");
+    }
   };
 
   const getCroppedImg = async (image, crop) => {
@@ -171,8 +182,14 @@ const ProfileHeader = ({ user }) => {
               <p className="text-gray-600 text-sm">Tham gia: 20 Nhóm</p>
             </div>
             <div className="flex gap-2 mt-3 sm:mt-0">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-md shadow">
-                + Theo dõi
+              <button
+                onClick={handleFollow}
+                className={`text-sm font-medium px-4 py-2 rounded-md shadow ${isFollowing
+                    ? "bg-gray-200 hover:bg-gray-300 text-black"
+                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }`}
+              >
+                {isFollowing ? "Đang theo dõi" : "+ Theo dõi"}
               </button>
               <button className="bg-gray-200 hover:bg-gray-300 text-sm text-black font-medium px-4 py-2 rounded-md shadow">
                 ✎ Liên hệ

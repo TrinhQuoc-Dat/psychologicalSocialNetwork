@@ -37,6 +37,54 @@ class UserSerializer(serializers.ModelSerializer):
             return obj.cover.url
         return None
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    is_followed = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
+    cover = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id','first_name', 'last_name', 'username', 'email', 'avatar', 'role', 'cover', 'is_followed']
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        user = User(**validated_data)
+        if password:
+            user.set_password(password)
+        user.save()
+        return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
+    
+    def get_avatar(self, obj):
+        if obj.avatar:
+            return obj.avatar.url
+        return None
+    
+    def get_cover(self, obj):
+        if obj.cover:
+            return obj.cover.url
+        return None
+
+    def get_is_followed(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Contact.objects.filter(
+                from_user=request.user,
+                to_user=obj,
+                status='ACCEPTED'
+            ).exists()
+        return False
+
+
 class UserSearchSerializer(serializers.ModelSerializer):
     avatar = serializers.SerializerMethodField()
     class Meta:
@@ -48,7 +96,36 @@ class UserSearchSerializer(serializers.ModelSerializer):
         if obj.avatar:
             return obj.avatar.url
         return None
-    
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True)
+    confirm_password = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "password", "first_name", 
+                  "last_name", "confirm_password", "role", "avatar", "cover"]
+
+    def validate(self, data):
+        if data["password"] != data["confirm_password"]:
+            raise serializers.ValidationError("Passwords do not match")
+        return data
+
+    def create(self, validated_data):
+        validated_data.pop("confirm_password")
+        validated_data["password"] = make_password(validated_data["password"])
+        return User.objects.create(**validated_data)
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True, required=True)
+    new_password = serializers.CharField(write_only=True, required=True)
+    confirm_new_password = serializers.CharField(write_only=True, required=True)
+
+    def validate(self, data):
+        if data["new_password"] != data["confirm_new_password"]:
+            raise serializers.ValidationError("New passwords do not match")
+        return data
 
 class ContactSerializer(serializers.ModelSerializer):
     from_user = UserSerializer(read_only=True)
@@ -143,7 +220,6 @@ class ReactionSerializer(serializers.ModelSerializer):
 
 
 # ============== khảo sát =================
-
 class SurveyPostSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='post.id', read_only=True)
     class Meta:
@@ -207,6 +283,45 @@ class SurveyPostCreateSerializer(serializers.ModelSerializer):
 
         return survey_post
 
+class PostWithoutSurveySerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    images = serializers.SerializerMethodField()
+    reaction_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    current_user_reacted = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Post
+        fields = [
+            'id', 'content', 'lock_comment', 'user',
+            'created_date', 'updated_date', 'deleted_date', 'images',
+            'reaction_count', 'comment_count', 'current_user_reacted'
+        ]
+
+    def get_images(self, obj):
+        images = obj.postimage_set.filter(active=True)
+        return PostImageSerializer(images, many=True).data
+
+    def get_reaction_count(self, obj):
+        return Reaction.objects.filter(post=obj, active=True).count()
+
+    def get_comment_count(self, obj):
+        return Comment.objects.filter(post=obj, active=True).count()
+
+    def get_current_user_reacted(self, obj):
+        user = self.context.get('request').user
+        if not user or not user.is_authenticated:
+            return False
+        return Reaction.objects.filter(post=obj, user=user, deleted_date__isnull=True).exists()
+
+
+class SurveyPostExpiredSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='post.id', read_only=True)
+    post = PostWithoutSurveySerializer(read_only=True)
+
+    class Meta:
+        model = SurveyPost
+        fields = ["id", "end_time", "survey_type", "status", "post"]
 
 
 class TagSerializer(serializers.ModelSerializer):

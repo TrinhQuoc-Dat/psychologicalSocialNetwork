@@ -244,13 +244,13 @@ const MessengerDropdown = ({ currentUser, onClose, onOpenChat }) => {
         chatId: result.chatId,
         participant: {
           id: "chat",
-          name: "Meta AI",
+          name: "MindCare AI",
           avatar: "https://www.shutterstock.com/image-vector/ai-generated-button-icon-artificial-600nw-2540221197.jpg",
         },
       });
     }
 
-    if (chatAI.metadata.hasUnread) {
+    if (chatAI?.metadata.hasUnread) {
       await ChatAIService.markMessagesAsRead(
         chatAI.id,
         currentUser.id.toString()
@@ -365,13 +365,7 @@ const MessengerDropdown = ({ currentUser, onClose, onOpenChat }) => {
         ref={dropdownRef}
         onScroll={handleScroll}
       >
-        {loading ? (
-          <div className="flex justify-center items-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        ) : filteredItems.length > 0 ? (
-          <>
-            <div onClick={() => handleChatAIClick(chat)}
+        <div onClick={() => handleChatAIClick(chat)}
               className="flex items-center p-3 hover:bg-gray-50 border-b border-gray-100 transition-colors duration-150 cursor-pointer">
               <div className="relative">
                 <img
@@ -383,7 +377,7 @@ const MessengerDropdown = ({ currentUser, onClose, onOpenChat }) => {
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-baseline">
                   <h4 className="font-semibold text-gray-800 truncate">
-                    Meta AI
+                    MindCare AI
                   </h4>
                   {chat?.metadata?.lastMessageTime && (
                       <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">
@@ -398,6 +392,13 @@ const MessengerDropdown = ({ currentUser, onClose, onOpenChat }) => {
                 </div>
               </div>
             </div>
+        {loading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : filteredItems.length > 0 ? (
+          <>
+            
             {filteredItems.map((item) => (
               <div
                 key={item.id}

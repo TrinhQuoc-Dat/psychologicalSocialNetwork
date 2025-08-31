@@ -10,7 +10,9 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
-from esocialnetworkapi.qchatbot_minilm_l6_v2 import load_llm, create_qa_chain, read_vectors_db, create_prompt, find_faq_answer, answer_query
+from rest_framework.exceptions import ValidationError
+from django.contrib.auth.hashers import make_password
+from esocialnetworkapi.qchatbot_openai import load_llm, create_qa_chain, read_vectors_db, create_prompt, find_faq_answer, answer_query, is_psychology_post
 
 # load sẵn khi khởi động server để tránh load lại mỗi request
 llm = load_llm()
@@ -19,7 +21,7 @@ TEMPLATE = """
     Yêu cầu:
     1. Đồng cảm với cảm xúc của người dùng, giọng văn nhẹ nhàng, không phán xét. 
     2. Nếu không có đủ thông tin, hãy thừa nhận và đưa ra lời khuyên tổng quát.
-    3. Nếu phát hiện người dùng người dùng bị stress, căng thẳng, buồn chán,... hãy đưa ra gợi ý thực tế, tích cực, an toàn (ví dụ: hít thở sâu, viết nhật ký, tập thể dục, nói chuyện với người tin tưởng,...).
+    3. Nếu phát hiện người dùng người dùng bị stress, căng thẳng, buồn chán,... hãy đưa ra gợi ý thực tế, tích cực và an toàn.
     4. Nếu phát hiện người dùng có ý nghĩ tự làm hại bản thân (người dùng nói về tự tử, tự làm hại bản thân, hoặc nguy hiểm tới tính mạng), 
             KHÔNG đưa ra cách tự xử lý mà hãy khuyến khích họ tìm sự giúp đỡ từ chuyên gia tâm lý, 
             gọi ngay số điện thoại hỗ trợ khẩn cấp tại địa phương, hoặc liên hệ với bạn bè/người thân đáng tin cậy.
@@ -38,22 +40,39 @@ prompt = create_prompt(TEMPLATE)
 db = read_vectors_db()
 qa_chain = create_qa_chain(prompt, llm, db)
 
-class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.UpdateAPIView):
+class UserViewSet(viewsets.ViewSet, generics.UpdateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
-    parser_classes = [parsers.MultiPartParser]
-
-    def get_permissions(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return [perms.OwnerPerms()]
-
-        return [permissions.AllowAny()]
+    parser_classes = [parsers.MultiPartParser, parsers.JSONParser, parsers.FormParser]
 
     @action(methods=['get'], url_path='current-user', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
         return Response(serializers.UserSerializer(request.user).data)
     
+    @action(methods=['post'], detail=False, url_path="register", permission_classes=[permissions.AllowAny])
+    def register(self, request):
+        ser = serializers.RegisterSerializer(data=request.data)
+        if ser.is_valid():
+            user = ser.save()
+            return Response(serializers.UserSerializer(user).data, status=status.HTTP_201_CREATED)
+        return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(methods=['PATCH'], detail=False, url_path="change-password", permission_classes=[perms.OwnerPerms])
+    def change_password(self, request):
+        ser = serializers.ChangePasswordSerializer(data=request.data)
+        if ser.is_valid():
+            user = request.user
+            old_password = ser.validated_data["old_password"]
+
+            if not user.check_password(old_password):
+                return Response({"error": "Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+
+            user.password = make_password(ser.validated_data["new_password"])
+            user.save()
+            return Response({"message": "Password changed successfully"}, status=status.HTTP_200_OK)
+
+        return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+    
     @action(methods=['get'], detail=False, url_path='search')
     def search(self, request):
         query = request.GET.get("q", "").strip()
@@ -102,9 +121,14 @@ class UserPostListView(generics.ListAPIView):
 
 class UserProfileView(generics.RetrieveAPIView):
     queryset = User.objects.all()
-    serializer_class = serializers.UserSerializer
+    serializer_class = serializers.UserProfileSerializer
     permission_classes = [permissions.AllowAny] 
-    lookup_field = 'id'  
+    lookup_field = 'id'
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request 
+        return context
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -125,6 +149,11 @@ class PostViewSet(viewsets.ModelViewSet):
         instance.save()
 
     def perform_create(self, serializer):
+        content = self.request.data.get("content")
+        # AI kiểm tra nội dung
+        if not is_psychology_post(llm, content):
+            raise ValidationError("Bài viết không thuộc lĩnh vực tâm lý học, không thể chia sẻ.")
+
         post = serializer.save(user=self.request.user)
         # Lấy groupId từ URL
         group_id = self.request.data.get("group_id")
@@ -177,17 +206,6 @@ class PostViewSet(viewsets.ModelViewSet):
         )
         return Response({"status": "reacted", "type": obj.reaction})
     
-    # @action(detail=False, methods=['get'], pagination_class=paginators.SurveyPostPaginator)
-    # def endtime(self, request):
-    #     expired_qs = SurveyPost.objects.filter(end_time__lt=timezone.now()).order_by('-end_time')
-
-    #     page = self.paginate_queryset(expired_qs)
-    #     if page is not None:
-    #         serializer = SurveyPostSimpleSerializer(page, many=True)
-    #         return self.get_paginated_response(serializer.data)
-
-    #     serializer = SurveyPostSimpleSerializer(expired_qs, many=True)
-    #     return Response(serializer.data)
 
     @action(detail=False, methods=['get'], url_path='group/(?P<group_id>[^/.]+)')
     def get_posts_by_group(self, request, group_id=None):
@@ -486,6 +504,17 @@ class SurveyPostViewSet(viewsets.ModelViewSet):
             "statistics": statistics
         })
     
+    @action(methods=['get'], detail=False, url_path='expired')
+    def get_expired_surveys(self, request):
+        now = timezone.now()
+        expired_surveys = SurveyPost.objects.filter(end_time__lt=now, status='EXPIRED')
+        paginator = PageNumberPagination()
+        paginator.page_size = 5
+        result_page = paginator.paginate_queryset(expired_surveys, request)
+
+        serializer = serializers.SurveyPostExpiredSerializer(result_page, many=True, context={'request': request} )
+        return paginator.get_paginated_response(serializer.data)
+    
 
 class GroupViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.CreateAPIView, generics.DestroyAPIView  ):
     queryset = UGroup.objects.filter(active=True)
@@ -568,7 +597,7 @@ class ContactViewSet(viewsets.ViewSet):
     
 
     # Gửi lời mời kết bạn
-    @action(methods=["post"], detail=False)
+    @action(methods=["post"], detail=False, url_path='user')
     def send_request(self, request):
         to_user_id = request.data.get("to_user")
         if not to_user_id:
@@ -577,7 +606,7 @@ class ContactViewSet(viewsets.ViewSet):
         to_user = get_object_or_404(User, id=to_user_id)
 
         contact, created = Contact.objects.get_or_create(
-            from_user=request.user, to_user=to_user
+            from_user=request.user, to_user=to_user, status="ACCEPTED"
         )
 
         if not created:
@@ -585,7 +614,8 @@ class ContactViewSet(viewsets.ViewSet):
 
         return Response({"message": "Đã gửi lời mời kết bạn"}, status=201)
 
-    # Chấp nhận lời mời
+
+    # Chấp nhận lời mời(đang phát triển)
     @action(methods=["post"], detail=True)
     def accept_request(self, request, pk=None):
         contact = get_object_or_404(Contact, id=pk, to_user=request.user)
@@ -596,18 +626,7 @@ class ContactViewSet(viewsets.ViewSet):
         contact.status = "ACCEPTED"
         contact.save()
 
-        # Tạo ThreadRoom để chat
-        thread, created = ThreadRoom.objects.get_or_create(
-            thread_type="DIRECT",
-            name=f"chat_{contact.from_user.id}_{contact.to_user.id}",
-            firebase_room_id=f"room_{contact.from_user.id}_{contact.to_user.id}"
-        )
-
-        # Thêm participant
-        ThreadRoomParticipant.objects.get_or_create(thread=thread, user=contact.from_user)
-        ThreadRoomParticipant.objects.get_or_create(thread=thread, user=contact.to_user)
-
-        return Response({"message": "Đã chấp nhận lời mời", "thread_id": thread.id})
+        return Response({"message": "Đã chấp nhận lời mời"})
 
     # Danh sách bạn bè
     @action(methods=["get"], detail=False)
@@ -624,9 +643,6 @@ class ContactViewSet(viewsets.ViewSet):
                 friends.append(c.to_user)
             else:
                 friends.append(c.from_user)
-
-        print(friends)
-
         paginator = paginators.ContactPaginator()
         paginated_contacts = paginator.paginate_queryset(friends, request)
         serializer = serializers.UserSerializer(paginated_contacts, many=True)

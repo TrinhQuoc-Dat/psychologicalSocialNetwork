@@ -12,10 +12,10 @@ export const login = async ({ username, password}) => {
 };
 
 export const register = async (userData) => {
-  const response = await axios.post(`${BASE_URL}/api/users/`, userData, {
+  console.log(userData);
+  const response = await axios.post(`${BASE_URL}/api/users/register/`, userData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  console.log(response.data);
 
   return response.data;
 };

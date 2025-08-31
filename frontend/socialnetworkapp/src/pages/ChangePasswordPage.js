@@ -6,13 +6,12 @@ import { motion } from "framer-motion";
 import { FiLock, FiEye, FiEyeOff, FiCheck, FiX, FiAlertCircle } from "react-icons/fi";
 
 const ChangePasswordPage = () => {
-  const token = useSelector((state) => state.auth.token);
-  const navigate = useNavigate();
   const [form, setForm] = useState({
-    oldPassword: "",
-    newPassword: "",
-    confirmPassword: "",
+    old_password: "",
+    new_password: "",
+    confirm_new_password: "",
   });
+  const navigate = useNavigate();
   const [errors, setErrors] = useState({
     oldPassword: "",
     newPassword: "",
@@ -33,14 +32,47 @@ const ChangePasswordPage = () => {
   }, []);
 
   useEffect(() => {
-    if (form.newPassword) {
-      const strength = calculatePasswordStrength(form.newPassword);
+    if (form.new_password) {
+      const strength = calculatePasswordStrength(form.new_password);
       setPasswordStrength(strength);
     } else {
       setPasswordStrength(0);
     }
-  }, [form.newPassword]);
+  }, [form.new_password]);
 
+  const validateForm = () => {
+    let isValid = true;
+    const newErrors = {
+      old_password: "",
+      new_password: "",
+      confirm_new_password: "",
+      general: ""
+    };
+
+    if (!form.old_password) {
+      newErrors.old_password = "Vui lòng nhập mật khẩu hiện tại";
+      isValid = false;
+    }
+
+    if (!form.new_password) {
+      newErrors.new_password = "Vui lòng nhập mật khẩu mới";
+      isValid = false;
+    } else if (passwordStrength < 3) {
+      newErrors.new_password = "Mật khẩu quá yếu. Vui lòng chọn mật khẩu mạnh hơn";
+      isValid = false;
+    }
+
+    if (!form.confirm_new_password) {
+      newErrors.confirm_new_password = "Vui lòng xác nhận mật khẩu mới";
+      isValid = false;
+    } else if (form.new_password !== form.confirm_new_password) {
+      newErrors.confirm_new_password = "Mật khẩu mới không khớp";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
   const calculatePasswordStrength = (password) => {
     let strength = 0;
     if (password.length > 5) strength += 1;
@@ -49,6 +81,40 @@ const ChangePasswordPage = () => {
     if (/[0-9]/.test(password)) strength += 1;
     if (/[^A-Za-z0-9]/.test(password)) strength += 1;
     return strength;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    if (!validateForm()) {
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      await changePassword(form);
+      setSuccess(true);
+      setTimeout(() => {
+        navigate(-1);
+      }, 1500);
+    } catch (err) {
+      if (err.response?.data) {
+        const backendError = err.response.data;
+        setErrors({
+          ...errors,
+          ...backendError,
+          general: backendError.message || ""
+        });
+      } else {
+        setErrors({
+          ...errors,
+          general: "Đã xảy ra lỗi khi đổi mật khẩu!"
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -60,89 +126,6 @@ const ChangePasswordPage = () => {
 
   const toggleShowPassword = (field) => {
     setShowPassword({ ...showPassword, [field]: !showPassword[field] });
-  };
-
-  const validateForm = () => {
-    let isValid = true;
-    const newErrors = {
-      oldPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-      general: ""
-    };
-
-    if (!form.oldPassword) {
-      newErrors.oldPassword = "Vui lòng nhập mật khẩu hiện tại";
-      isValid = false;
-    }
-
-    if (!form.newPassword) {
-      newErrors.newPassword = "Vui lòng nhập mật khẩu mới";
-      isValid = false;
-    } else if (passwordStrength < 3) {
-      newErrors.newPassword = "Mật khẩu quá yếu. Vui lòng chọn mật khẩu mạnh hơn";
-      isValid = false;
-    }
-
-    if (!form.confirmPassword) {
-      newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu mới";
-      isValid = false;
-    } else if (form.newPassword !== form.confirmPassword) {
-      newErrors.confirmPassword = "Mật khẩu mới không khớp";
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    if (!validateForm()) {
-      setIsSubmitting(false);
-      return;
-    }
-
-    try {
-      await changePassword(token, form.oldPassword, form.newPassword);
-      setSuccess(true);
-      setTimeout(() => {
-        navigate(-1);
-      }, 1500);
-    } catch (err) {
-      // Xử lý lỗi từ backend
-      if (err.response?.data) {
-        const backendError = err.response.data;
-        
-        if (backendError.message === "Mật khẩu cũ không đúng") {
-          setErrors({
-            ...errors,
-            oldPassword: backendError.message,
-            general: ""
-          });
-        } else if (backendError.newPassword) {
-          setErrors({
-            ...errors,
-            newPassword: backendError.newPassword,
-            general: ""
-          });
-        } else {
-          setErrors({
-            ...errors,
-            general: backendError.message || "Đã xảy ra lỗi khi đổi mật khẩu!"
-          });
-        }
-      } else {
-        setErrors({
-          ...errors,
-          general: "Đã xảy ra lỗi khi đổi mật khẩu!"
-        });
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const getPasswordStrengthColor = () => {
@@ -169,9 +152,8 @@ const ChangePasswordPage = () => {
           type={showPassword[field] ? "text" : "password"}
           name={field}
           placeholder={placeholder}
-          className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
-            errors[field] ? "border-red-500" : "border-gray-300"
-          }`}
+          className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${errors[field] ? "border-red-500" : "border-gray-300"
+            }`}
           value={form[field]}
           onChange={handleChange}
           required
@@ -185,7 +167,7 @@ const ChangePasswordPage = () => {
         </button>
       </div>
       {errors[field] && (
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-red-500 text-sm mt-1 flex items-start"
@@ -249,16 +231,20 @@ const ChangePasswordPage = () => {
 
               <div className="space-y-4">
                 {/* Mật khẩu hiện tại */}
+
                 {renderInputField(
-                  "oldPassword",
+                  "old_password",
                   "Mật khẩu hiện tại",
                   "Nhập mật khẩu hiện tại"
                 )}
 
+
+
+
                 {/* Mật khẩu mới */}
                 <div>
                   {renderInputField(
-                    "newPassword",
+                    "new_password",
                     "Mật khẩu mới",
                     "Nhập mật khẩu mới"
                   )}
@@ -270,11 +256,10 @@ const ChangePasswordPage = () => {
                     >
                       <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
                         <span>Độ mạnh mật khẩu:</span>
-                        <span className={`font-medium ${
-                          passwordStrength <= 2 ? "text-red-500" : 
-                          passwordStrength === 3 ? "text-yellow-500" : 
-                          "text-green-500"
-                        }`}>
+                        <span className={`font-medium ${passwordStrength <= 2 ? "text-red-500" :
+                          passwordStrength === 3 ? "text-yellow-500" :
+                            "text-green-500"
+                          }`}>
                           {getPasswordStrengthText()}
                         </span>
                       </div>
@@ -293,10 +278,11 @@ const ChangePasswordPage = () => {
 
                 {/* Xác nhận mật khẩu mới */}
                 {renderInputField(
-                  "confirmPassword",
+                  "confirm_new_password",
                   "Xác nhận mật khẩu mới",
                   "Nhập lại mật khẩu mới"
                 )}
+
               </div>
 
               <div className="pt-2">
@@ -305,9 +291,8 @@ const ChangePasswordPage = () => {
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full py-3 px-4 rounded-lg font-medium text-white transition ${
-                    isSubmitting ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-                  }`}
+                  className={`w-full py-3 px-4 rounded-lg font-medium text-white transition ${isSubmitting ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                    }`}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center justify-center">

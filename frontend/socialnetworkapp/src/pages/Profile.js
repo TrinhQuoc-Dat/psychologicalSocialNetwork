@@ -40,7 +40,7 @@ const Profile = () => {
     if (token) {
       const fetchProfile = async () => {
         try {
-          const userData = await getUserProfile(id, token);
+          const userData = await getUserProfile(id);
           setProfileUser(userData);
         } catch (error) {
           console.error("Error fetching profile:", error);

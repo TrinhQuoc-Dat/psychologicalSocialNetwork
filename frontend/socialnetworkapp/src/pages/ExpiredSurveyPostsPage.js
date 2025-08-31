@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { fetchExpiredSurveyPosts } from "../services/surveyPostService";
 import PostList from "../components/PostList/PostList";
 import { useSelector } from "react-redux";
+import InfiniteScroll from "react-infinite-scroll-component";
+import PostSkeleton from "../components/PostList/PostSkeleton";
+import PostItem from "../components/PostList/PostItem";
 
 const ExpiredSurveyPostsPage = () => {
   const [posts, setPosts] = useState([]);
@@ -20,9 +23,9 @@ const ExpiredSurveyPostsPage = () => {
         { page: pageNum, size },
       );
       console.log(response.results)
-      
+
       setPosts(prev => pageNum === 1 ? response.results : [...prev, ...response.results]);
-      setTotal(response.count); 
+      setTotal(response.count);
       setHasMore(response.next !== null);
     } catch (err) {
       setError(err.message || "Lỗi khi tải dữ liệu khảo sát hết hạn");
@@ -54,23 +57,38 @@ const ExpiredSurveyPostsPage = () => {
     }
   };
 
-  console.log(posts)
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-semibold mb-4">Danh sách khảo sát đã hết hạn</h1>
-
-      <PostList
-        posts={posts}
-        loading={loading && page === 1}
-        error={error}
+      <InfiniteScroll
+        dataLength={posts?.length || 0}
+        next={fetchMoreData}
         hasMore={hasMore}
-        fetchMoreData={fetchMoreData}
-        customEmptyMessage={
-          <p className="text-center py-8 text-gray-500">
-            Không có khảo sát hết hạn nào
+        loader={
+          <div className="space-y-4">
+            {[...Array(2)].map((_, i) => (
+              <PostSkeleton key={i} />
+            ))}
+          </div>
+        }
+        endMessage={
+          <p className="text-center text-gray-500 py-4">
+            You've seen all posts
           </p>
         }
-      />
+        scrollThreshold={0.8}
+      >
+        <div className="space-y-4">
+          {posts && posts.map((survey) => (
+            <div key={survey.id} className="mb-4">
+              <p className="text-sm text-red-500">
+                Hết hạn: {new Date(survey.end_time).toLocaleString()}
+              </p>
+              <PostItem key={survey.post.id} post={survey.post} survey_id={survey.id}/>
+            </div>
+          ))}
+        </div>
+      </InfiniteScroll>
 
       {/* Optional: Traditional pagination */}
       {total > size && (

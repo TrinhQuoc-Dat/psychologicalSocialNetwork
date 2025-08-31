@@ -10,6 +10,10 @@ import { db } from "../../filebase/config";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import useNotifications from "../../hooks/useNotifications";
 import { flushSync } from "react-dom";
+import axios from "axios";
+import BASE_URL from "../../services/baseUrl";
+import Authorization from"../until/AuthorizationComponent"
+
 
 const Navbar = ({ onOpenChat }) => {
   const dispatch = useDispatch();
@@ -21,6 +25,8 @@ const Navbar = ({ onOpenChat }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const { user } = useSelector((state) => state.auth);
   const location = useLocation();
@@ -34,18 +40,44 @@ const Navbar = ({ onOpenChat }) => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      //navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
       setShowSearchResults(false);
+    }
+  };
+
+  // Hàm gọi API search
+  const fetchSearchResults = async (query) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await axios.get(
+        `${BASE_URL}/api/users/search/?q=${encodeURIComponent(query)}&page=1&size=5`,
+        {
+          headers: Authorization()
+        }
+      );
+      console.log(res.data.results)
+      setSearchResults(res.data.results || []);
+    } catch (err) {
+      console.error("Search error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   // Hàm xử lý thay đổi input search
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    if (e.target.value) {
+    const value = e.target.value;
+    setSearchQuery(value);
+    if (value) {
       setShowSearchResults(true);
+      fetchSearchResults(value);
     } else {
       setShowSearchResults(false);
+      setSearchResults([])
     }
   };
 
@@ -180,9 +212,37 @@ const Navbar = ({ onOpenChat }) => {
             {/* Dropdown kết quả tìm kiếm */}
             {showSearchResults && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
-                <div className="p-4 text-center text-gray-500">
-                  <p>Nhập để tìm kiếm cựu học sinh, bài viết, sự kiện...</p>
-                </div>
+                {loading ? (
+                  <div className="p-4 text-center text-gray-500">Đang tìm...</div>
+                ) : searchResults.length > 0 ? (
+                  <ul className="divide-y divide-gray-200">
+                    {searchResults.map((u) => (
+                      <li key={u.id}>
+                        <Link
+                          to={`/profile/${u.id}`}
+                          className="flex items-center px-4 py-2 hover:bg-gray-100"
+                          onClick={() => setShowSearchResults(false)}
+                        >
+                          <img
+                            src={u.avatar}
+                            alt={u.username}
+                            className="w-8 h-8 rounded-full mr-3"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {u.first_name} {u.last_name}
+                            </p>
+                            <p className="text-xs text-gray-500">@{u.username}</p>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="p-4 text-center text-gray-500">
+                    Không tìm thấy kết quả
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -193,8 +253,8 @@ const Navbar = ({ onOpenChat }) => {
           <Link
             to="/home"
             className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${currentPath === "/home"
-                ? "bg-blue-100 text-blue-600 font-semibold"
-                : "text-gray-700 hover:bg-gray-100 hover:text-blue-500"
+              ? "bg-blue-100 text-blue-600 font-semibold"
+              : "text-gray-700 hover:bg-gray-100 hover:text-blue-500"
               }`}
           >
             <Home className="w-5 h-5" />
@@ -203,8 +263,8 @@ const Navbar = ({ onOpenChat }) => {
           <Link
             to="/survey"
             className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${currentPath === "/survey"
-                ? "bg-blue-100 text-blue-600 font-semibold"
-                : "text-gray-700 hover:bg-gray-100 hover:text-blue-500"
+              ? "bg-blue-100 text-blue-600 font-semibold"
+              : "text-gray-700 hover:bg-gray-100 hover:text-blue-500"
               }`}
           >
             <BarChart2 className="w-5 h-5" />
@@ -213,8 +273,8 @@ const Navbar = ({ onOpenChat }) => {
           <Link
             to="/events"
             className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${currentPath === "/events"
-                ? "bg-blue-100 text-blue-600 font-semibold"
-                : "text-gray-700 hover:bg-gray-100 hover:text-blue-500"
+              ? "bg-blue-100 text-blue-600 font-semibold"
+              : "text-gray-700 hover:bg-gray-100 hover:text-blue-500"
               }`}
           >
             <Calendar className="w-5 h-5" />
@@ -234,8 +294,8 @@ const Navbar = ({ onOpenChat }) => {
                     setShowNotifications(false);
                   }}
                   className={`p-2 rounded-full transition-colors duration-200 relative ${showMessenger
-                      ? "bg-blue-100 text-blue-600"
-                      : "hover:bg-gray-300 active:bg-gray-400 text-gray-600"
+                    ? "bg-blue-100 text-blue-600"
+                    : "hover:bg-gray-300 active:bg-gray-400 text-gray-600"
                     }`}
                 >
                   <svg

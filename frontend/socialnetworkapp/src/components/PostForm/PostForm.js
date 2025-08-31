@@ -96,7 +96,7 @@ const PostForm = ({ onClose, user, postId = null, groupId}) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!content.trim() && images.length === 0 && existingImages.length === 0) {
-      toast.warning("Please enter content or add images");
+      toast.warning("Hãy nhận nội dung hoặc hình ảnh cho bài viết.");
       return;
     }
 
@@ -121,7 +121,7 @@ const PostForm = ({ onClose, user, postId = null, groupId}) => {
       if (postId) {
         // Update existing post
         await updatePost(postId, formData);
-        toast.success("Post updated successfully!");
+        toast.success("Đăng bài thành công!");
       } else {
         console.log("groupId", groupId)
         if (groupId !== null){
@@ -131,14 +131,15 @@ const PostForm = ({ onClose, user, postId = null, groupId}) => {
         console.log("formdata", formData);
         // Create new post
         await createPost(formData);
-        toast.success("Post created successfully!");
+        toast.success("Cập nhật bài thành công!");
       }
 
       dispatch(fetchPosts({ page: 1, size: 3, refresh: true }));
       onClose();
     } catch (err) {
-      console.error("Error:", err);
-      toast.error(postId ? "Failed to update post" : "Failed to create post");
+      if (err.status === 400)
+        toast.warning("Bài viết không liên quan hoặc Vi phạm quy định cộng đồng!");
+      toast.error(postId ? "Cập nhật thất bại!" : "Đăng bài thất bài");
     } finally {
       setLoading(false);
     }
@@ -373,11 +374,11 @@ const PostForm = ({ onClose, user, postId = null, groupId}) => {
           >
             {loading
               ? postId
-                ? "Updating..."
-                : "Posting..."
+                ? "Đang Cập Nhật..."
+                : "Đang đăng bài..."
               : postId
-              ? "Update"
-              : "Post"}
+              ? "Cập nhật bài đăng"
+              : "Đăng bài"}
           </button>
         </div>
       </div>

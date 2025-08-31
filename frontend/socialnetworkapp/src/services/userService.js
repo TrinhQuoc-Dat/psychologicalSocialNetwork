@@ -2,18 +2,14 @@ import axios from "axios";
 import BASE_URL from './baseUrl'; 
 import Authorization from "../components/until/AuthorizationComponent";
 
-export const changePassword = async (token, oldPassword, newPassword) => {
+export const changePassword = async (formData) => {
   try {
-    const response = await axios.put(
-      `${BASE_URL}/users/password`,
+    console.log(Authorization())
+    const response = await axios.patch(
+      `${BASE_URL}/api/users/change-password/`,
+      formData,
       {
-        oldPassword,
-        newPassword,
-      },
-      {
-        headers: {
-          Authorization: token,
-        },
+        headers: Authorization()
       }
     );
     return response.data;
@@ -27,7 +23,7 @@ export const changePassword = async (token, oldPassword, newPassword) => {
   }
 };
 
-export const getUserProfile = async (userId, token) => {
+export const getUserProfile = async (userId) => {
   try {
     const response = await axios.get(`${BASE_URL}/api/users/${userId}`, {
       headers: Authorization(),
@@ -96,5 +92,20 @@ export const updateUserAvatarOrCover = async (formData, token) => {
       response: error.response?.data,
     });
     throw error;
+  }
+};
+
+
+export const sendFriendRequest = async (toUserId) => {
+  try {
+    const response = await axios.post(
+      `${BASE_URL}/api/contact/user/`,
+      { to_user: toUserId },
+      { headers: Authorization() }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi gửi lời mời kết bạn:", error);
+    throw error.response?.data || { message: "Đã xảy ra lỗi" };
   }
 };

@@ -2,10 +2,10 @@ import axios from "axios";
 import BASE_URL from './baseUrl';
 import Authorization from "../components/until/AuthorizationComponent";
 
-export const createSurvey = async (payload, token) => {
+export const createSurvey = async (payload) => {
   try {
     console.log(payload);
-    const response = await axios.post(`${BASE_URL}/survey-posts`, payload, {
+    const response = await axios.post(`${BASE_URL}/api/survey/`, payload, {
       headers: Authorization(),
     });
     return response.data;
@@ -19,7 +19,7 @@ export const createSurvey = async (payload, token) => {
 
 export const fetchExpiredSurveyPosts = async (params = {}) => {
   try {
-    const response = await axios.get(`${BASE_URL}/api/survey/endtime/`, {
+    const response = await axios.get(`${BASE_URL}/api/survey/expired/`, {
       params,
       headers: Authorization(),
     });
@@ -30,6 +30,7 @@ export const fetchExpiredSurveyPosts = async (params = {}) => {
     throw error;
   }
 };
+
 
 export const getSurveyStatistics = async (surveyPostId) => {
   try {

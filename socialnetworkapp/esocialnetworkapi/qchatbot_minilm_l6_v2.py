@@ -120,43 +120,43 @@ def read_vectors_db():
 if __name__ == "__main__":
     pass
 
-    TEMPLATE = """
-        Bạn là một chuyên gia tâm lý. Hãy dựa vào context để trả lời ngắn gọn, rõ ràng (tối đa 3-5 câu), phù hợp với câu hỏi người dùng.  
-        Yêu cầu:
-        1. Đồng cảm với cảm xúc của người dùng, giọng văn nhẹ nhàng, không phán xét. 
-        2. Nếu không có đủ thông tin, hãy thừa nhận và đưa ra lời khuyên tổng quát.
-        3. Nếu phát hiện người dùng người dùng bị stress, căng thẳng, buồn chán,... hãy đưa ra gợi ý thực tế, tích cực, an toàn (ví dụ: hít thở sâu, viết nhật ký, tập thể dục, nói chuyện với người tin tưởng,...).
-        4. Nếu phát hiện người dùng có ý nghĩ tự làm hại bản thân (người dùng nói về tự tử, tự làm hại bản thân, hoặc nguy hiểm tới tính mạng), 
-                KHÔNG đưa ra cách tự xử lý mà hãy khuyến khích họ tìm sự giúp đỡ từ chuyên gia tâm lý, 
-                gọi ngay số điện thoại hỗ trợ khẩn cấp tại địa phương, hoặc liên hệ với bạn bè/người thân đáng tin cậy.
-        5. Nếu là câu hỏi về lý thuyết chỉ cần trả lời câu hỏi, không đưa ra lời khuyên.
-        6. Không bao giờ thay thế cho bác sĩ hoặc nhà trị liệu chuyên nghiệp.  
+    # TEMPLATE = """
+    #     Bạn là một chuyên gia tâm lý. Hãy dựa vào context để trả lời ngắn gọn, rõ ràng (tối đa 3-5 câu), phù hợp với câu hỏi người dùng.  
+    #     Yêu cầu:
+    #     1. Đồng cảm với cảm xúc của người dùng, giọng văn nhẹ nhàng, không phán xét. 
+    #     2. Nếu không có đủ thông tin, hãy thừa nhận và đưa ra lời khuyên tổng quát.
+    #     3. Nếu phát hiện người dùng người dùng bị stress, căng thẳng, buồn chán,... hãy đưa ra gợi ý thực tế, tích cực, an toàn (ví dụ: hít thở sâu, viết nhật ký, tập thể dục, nói chuyện với người tin tưởng,...).
+    #     4. Nếu phát hiện người dùng có ý nghĩ tự làm hại bản thân (người dùng nói về tự tử, tự làm hại bản thân, hoặc nguy hiểm tới tính mạng), 
+    #             KHÔNG đưa ra cách tự xử lý mà hãy khuyến khích họ tìm sự giúp đỡ từ chuyên gia tâm lý, 
+    #             gọi ngay số điện thoại hỗ trợ khẩn cấp tại địa phương, hoặc liên hệ với bạn bè/người thân đáng tin cậy.
+    #     5. Nếu là câu hỏi về lý thuyết chỉ cần trả lời câu hỏi, không đưa ra lời khuyên.
+    #     6. Không bao giờ thay thế cho bác sĩ hoặc nhà trị liệu chuyên nghiệp.  
 
-        Thông tin (context):  {context}
+    #     Thông tin (context):  {context}
 
-        Câu hỏi: {question}
+    #     Câu hỏi: {question}
 
-        Trả lời:
-        """
+    #     Trả lời:
+    #     """
 
-    llm = load_llm()
-    prompt = create_prompt(TEMPLATE)
-    db = read_vectors_db()
+    # llm = load_llm()
+    # prompt = create_prompt(TEMPLATE)
+    # db = read_vectors_db()
 
-    qa_chain = create_qa_chain(prompt, llm, db)
+    # qa_chain = create_qa_chain(prompt, llm, db)
 
-    while True:
-        query = input("Nhập câu hỏi: ")
-        if query.lower().strip() == "exit":
-            print("Thoát chương trình.")
-            break
+    # while True:
+    #     query = input("Nhập câu hỏi: ")
+    #     if query.lower().strip() == "exit":
+    #         print("Thoát chương trình.")
+    #         break
 
-        result = answer_query(query=query, llm=llm, template=TEMPLATE, qa_chain=qa_chain)
-        print(result)
-        print("\n=== Trả lời ===")
-        print(result["result"])
-        if "question" not in result or result["question"] == True:
-            print("\n=== Nguồn tham chiếu ===")
-            for doc in result["source_documents"]:
-                print(f"- {doc.metadata.get('source', 'unknown')}")
-            print("\n----------------------\n")
+    #     result = answer_query(query=query, llm=llm, template=TEMPLATE, qa_chain=qa_chain)
+    #     print(result)
+    #     print("\n=== Trả lời ===")
+    #     print(result["result"])
+    #     if "question" not in result or result["question"] == True:
+    #         print("\n=== Nguồn tham chiếu ===")
+    #         for doc in result["source_documents"]:
+    #             print(f"- {doc.metadata.get('source', 'unknown')}")
+    #         print("\n----------------------\n")

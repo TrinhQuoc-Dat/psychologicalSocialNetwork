@@ -15,7 +15,7 @@ import { getSurveyStatistics } from "../../services/surveyPostService";
 import SurveyStatsCard from "./SurveyStatistics/SurveyStatsCard";
 import QuestionStats from "./SurveyStatistics/QuestionStats";
 
-const SurveyStatsModal = ({ open, onClose, surveyPostId, token }) => {
+const SurveyStatsModal = ({ open, onClose, surveyPostId }) => {
   const [statsData, setStatsData] = useState({
     statistics: [],
     participantCount: 0

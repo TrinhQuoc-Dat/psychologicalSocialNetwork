@@ -104,11 +104,16 @@ class UGroup(models.Model):
     deleted_date = models.DateTimeField(null=True, blank=True)
     active = models.BooleanField(default=True)
 
+    class Meta:
+        ordering = ['-created_date']
+
 # ================ Bài Đăng, like, comment===============
 class Post(BaseModel):
     content = models.TextField()
     lock_comment = models.BooleanField(default=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    class Meta:
+        ordering = ['-created_date']
 
 class PostImage(BaseModel):
     image = CloudinaryField('post_image', null=True, blank=True)

@@ -19,21 +19,23 @@ const RegisterPage = () => {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
-    confirmPassword: "",
-    firstName: "",
-    lastName: "",
+    confirm_password: "",
+    first_name: "",
+    last_name: "",
     email: "",
     phone: "",
-    studentCode: "",
+    cccd: "",
   });
   const [avatar, setAvatar] = useState(null);
+  const [cover, setCover] = useState(null);
   const [localError, setLocalError] = useState(null);
   const [showPassword, setShowPassword] = useState({
     password: false,
-    confirmPassword: false,
+    confirm_password: false,
   });
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarPreviewCover, setAvatarPreviewCover] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState(null);
@@ -84,6 +86,18 @@ const RegisterPage = () => {
     }
   };
 
+  const handleFileChangeCover = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setLocalError("Kích thước ảnh không được vượt quá 5MB");
+        return;
+      }
+      setCover(file);
+      setAvatarPreviewCover(URL.createObjectURL(file));
+    }
+  };
+
   const toggleShowPassword = (field) => {
     setShowPassword({ ...showPassword, [field]: !showPassword[field] });
   };
@@ -93,7 +107,7 @@ const RegisterPage = () => {
     setIsSubmitting(true);
     setLocalError(null);
 
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.password !== formData.confirm_password) {
       setLocalError("Mật khẩu và Nhập lại mật khẩu không khớp.");
       setIsSubmitting(false);
       return;
@@ -110,6 +124,7 @@ const RegisterPage = () => {
       formDataToSend.append(key, value);
     });
     if (avatar) formDataToSend.append("avatar", avatar);
+    if (cover) formDataToSend.append("cover", cover);
 
     try {
       await dispatch(registerUser(formDataToSend)).unwrap();
@@ -199,17 +214,17 @@ const RegisterPage = () => {
                   <div className="relative">
                     <input
                       type="text"
-                      name="firstName"
+                      name="first_name"
                       placeholder="Nhập họ của bạn"
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                      value={formData.firstName}
+                      value={formData.first_name}
                       onChange={handleChange}
                       required
                     />
                   </div>
-                  {errors && errors.firstName && (
+                  {errors && errors.first_name && (
                     <div className="text-red-500 text-sm italic mt-1">
-                      {errors.firstName}
+                      {errors.first_name}
                     </div>
                   )}
                 </div>
@@ -221,17 +236,17 @@ const RegisterPage = () => {
                   <div className="relative">
                     <input
                       type="text"
-                      name="lastName"
+                      name="last_name"
                       placeholder="Nhập tên của bạn"
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                      value={formData.lastName}
+                      value={formData.last_name}
                       onChange={handleChange}
                       required
                     />
                   </div>
-                  {errors && errors.lastName && (
+                  {errors && errors.last_name && (
                     <div className="text-red-500 text-sm italic mt-1">
-                      {errors.lastName}
+                      {errors.last_name}
                     </div>
                   )}
                 </div>
@@ -282,20 +297,19 @@ const RegisterPage = () => {
                   )}
                 </div>
 
-                {/* Mã sinh viên và Tên đăng nhập */}
+                {/* Mã cccd và Tên đăng nhập */}
                 <div>
                   <label className="block text-gray-700 text-sm font-medium mb-1">
-                    Mã sinh viên <span className="text-red-500">*</span>
+                    Mã CCCD <span className="text-red-500"></span>
                   </label>
                   <div className="relative">
                     <input
                       type="text"
-                      name="studentCode"
-                      placeholder="Nhập mã sinh viên"
+                      name="cccd"
+                      placeholder="Nhập mã CCCD"
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                       value={formData.studentCode}
                       onChange={handleChange}
-                      required
                     />
                   </div>
                   {errors && errors.studentCode && (
@@ -398,25 +412,25 @@ const RegisterPage = () => {
                   <div className="relative">
                     <FiLock className="absolute left-3 top-3.5 text-gray-400" />
                     <input
-                      type={showPassword.confirmPassword ? "text" : "password"}
-                      name="confirmPassword"
+                      type={showPassword.confirm_password ? "text" : "password"}
+                      name="confirm_password"
                       placeholder="Nhập lại mật khẩu"
                       className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                      value={formData.confirmPassword}
+                      value={formData.confirm_password}
                       onChange={handleChange}
                       required
                     />
                     <button
                       type="button"
-                      onClick={() => toggleShowPassword("confirmPassword")}
+                      onClick={() => toggleShowPassword("confirm_password")}
                       className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
                     >
-                      {showPassword.confirmPassword ? <FiEyeOff /> : <FiEye />}
+                      {showPassword.confirm_password ? <FiEyeOff /> : <FiEye />}
                     </button>
                   </div>
-                  {errors && errors.confirmPassword && (
+                  {errors && errors.confirm_password && (
                     <div className="text-red-500 text-sm italic mt-1">
-                      {errors.confirmPassword}
+                      {errors.confirm_password}
                     </div>
                   )}
                 </div>
@@ -464,6 +478,54 @@ const RegisterPage = () => {
                       {errors && errors.avatar && (
                         <div className="text-red-500 text-sm italic mt-1">
                           {errors.avatar}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-gray-700 text-sm font-medium mb-1">
+                    Ảnh bìa
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    <div className="relative">
+                      <label className="cursor-pointer">
+                        <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-gray-300 hover:border-blue-500 transition">
+                          {avatarPreviewCover ? (
+                            <img
+                              src={avatarPreviewCover}
+                              alt="Avatar preview"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <FiImage className="text-gray-400 text-xl" />
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          onChange={handleFileChangeCover}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600">
+                        Chọn ảnh đại diện (JPEG, PNG, tối đa 5MB)
+                      </p>
+                      {cover && (
+                        <motion.p
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-xs text-green-600 mt-1"
+                        >
+                          Đã chọn: {cover.name}
+                        </motion.p>
+                      )}
+                      {errors && errors.cover && (
+                        <div className="text-red-500 text-sm italic mt-1">
+                          {errors.cover}
                         </div>
                       )}
                     </div>

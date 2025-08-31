@@ -152,7 +152,7 @@ const SurveyModal = ({ show, onClose, onSubmit, loading, message }) => {
             </label>
             <input
               type="datetime-local"
-              name="endTime"
+              name="end_time"
               value={surveyData.end_time}
               onChange={handleInputChange}
               min={new Date().toISOString().slice(0, 16)}

@@ -23,7 +23,7 @@ const SurveyCreateForm = () => {
       //   return;
       // }
 
-      await createSurvey(surveyData, token);
+      await createSurvey(surveyData);
 
       setMessage({ success: "✅ Tạo khảo sát thành công!" });
       dispatch(fetchSurveyPosts({ page: 1, size: 5, refresh: true }));
