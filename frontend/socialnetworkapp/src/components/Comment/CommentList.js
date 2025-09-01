@@ -6,11 +6,11 @@ import CommentItem from "./CommentItem";
 import CommentHasmore from "./CommentHasmore";
 import CommentCreated from "./CommentCreated";
 import Authorization from "../until/AuthorizationComponent"
+import BASE_URL from "../../services/baseUrl";
 
 moment.locale("vi");
 
 const CommentList = ({ post, showComment, setCountComment }) => {
-  const BASE_URL = "http://localhost:8000";
   const [comments, setComments] = useState([]);
   const [page, setPage] = useState(1);
   const [size] = useState(5);
@@ -18,7 +18,7 @@ const CommentList = ({ post, showComment, setCountComment }) => {
 
   useEffect(() => {
     setComments([]);
-    setPage(0);
+    setPage(1);
     setHasMore(true);
   }, [post.id]);
 
@@ -31,7 +31,7 @@ const CommentList = ({ post, showComment, setCountComment }) => {
   const fetchComments = async () => {
     try {
       const response = await axios.get(
-        `${BASE_URL}/api/comments/parents?post=${post.id}&page=${1}&size=${size}`,
+        `${BASE_URL}/api/comments/parents/?post=${post.id}&page=${page}&size=${size}/`,
         {
           headers : Authorization(),
         }
@@ -39,7 +39,7 @@ const CommentList = ({ post, showComment, setCountComment }) => {
       console.log(response.data);
       const flag = response.data.next === null ? false : true;
       setComments((prev) => {
-        const filtered = response.data.results
+        const filtered = response.data?.results
           .filter((newC) => !prev.some((c) => c.id === newC.id))
           .map((comment) => ({
             ...comment,
@@ -88,7 +88,7 @@ const CommentList = ({ post, showComment, setCountComment }) => {
 
   const fetchReplies = async (parentId) => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/comments/children?parent_id=${parentId}`, {
+      const res = await axios.get(`${BASE_URL}/api/comments/children/?parent_id=${parentId}`, {
         headers: Authorization(),
       });
       console.log("reaply===> ", res.data.results);

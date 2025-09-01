@@ -3,16 +3,17 @@ import { BarChart2, Book, Briefcase, DollarSign } from "lucide-react";
 const SurveyTypeSelector = ({ value, onChange }) => {
   const surveyTypes = [
     {
-      value: "TRAINING_PROGRAM",
-      label: "Chương trình đào tạo",
+      value: "MENTAL_HEALTH",
+      label: "Sực khỏe tâm lý",
       icon: <Book className="mr-2" size={18} />,
-      description: "Khảo sát về chất lượng đào tạo, chương trình học",
+      description: "Khảo sát về tâm sực khỏe tâm lý con người.",
     },
+
     {
-      value: "RECRUITMENT_INFORMATION",
-      label: "Thông tin tuyển dụng",
+      value: "HANDLE_SITUATION",
+      label: "Tình huống ứng sử",
       icon: <Briefcase className="mr-2" size={18} />,
-      description: "Khảo sát nhu cầu tuyển dụng, thị trường lao động",
+      description: "Khảo sát về tình huống ứng sử tâm lý.",
     },
     {
       value: "INCOME",
@@ -21,10 +22,10 @@ const SurveyTypeSelector = ({ value, onChange }) => {
       description: "Khảo sát mức lương, phúc lợi ngành nghề",
     },
     {
-      value: "EMPLOYMENT_SITUATION",
+      value: "RECRUITMENT_INFO",
       label: "Tình hình việc làm",
       icon: <BarChart2 className="mr-2" size={18} />,
-      description: "Khảo sát tỷ lệ có việc làm sau tốt nghiệp",
+      description: "Khảo sát tỷ lệ công việc khi có sức khỏe tâm lý tốt.",
     },
   ];
 

@@ -24,6 +24,7 @@ const Profile = () => {
     try {
       setLoading(true);
       const response = await getUserPosts(id, token, pageNumber, 5); 
+      console.log("response from API:", response);
       setPosts((prev) =>
         reset ? response.results : [...prev, ...response.results]
       );
@@ -56,7 +57,9 @@ const Profile = () => {
   const handleLoadMore = async () => {
     const nextPage = page + 1;
     setPage(nextPage);
-    await loadPosts(nextPage);
+    if (hasMore){
+      await loadPosts(nextPage);
+    }
   };
 
   if (!profileUser && initialLoad) {
@@ -70,7 +73,7 @@ const Profile = () => {
 
   const isCurrentUserProfile = currentUser?.id === profileUser?.id;
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto mb-5">
       {profileUser && <ProfileHeader user={profileUser} />}
       <ProfileTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
@@ -82,6 +85,7 @@ const Profile = () => {
             </div>
           )}
           <ProfileTimeline
+            user={profileUser}
             posts={posts}
             loadMore={handleLoadMore}
             hasMore={hasMore}

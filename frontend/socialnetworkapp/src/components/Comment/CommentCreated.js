@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import defaultAvatar from "../../assets/image/default-user.png";
 import Authorization from "../until/AuthorizationComponent";
+import BASE_URL from "../../services/baseUrl";
 
 const CommentCreated = ({
   post,
@@ -13,7 +14,6 @@ const CommentCreated = ({
   handleReplies,
   setReplyTo,
 }) => {
-  const BASE_URL = "http://127.0.0.1:8000";
   const [content, setContent] = useState("");
   const [parentId, setParentId] = useState(parentComment);
   const [file, setFile] = useState(null);

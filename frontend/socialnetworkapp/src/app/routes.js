@@ -31,7 +31,7 @@ const RoutesConfig = () => (
         <Route path="//invitations/:id" element={<InvitationDetailPage />} />
         <Route path="/survey/:postId" element={<SurveyDetailPage />} />
         <Route path="/profile/:id" element={<Profile />} />
-        <Route path="/group/:id" element={<Group />}/>
+        <Route path="/group/:id" element={<Group />} />
         <Route path="/deleted-posts" element={<DeletedPostsPage />} />
         <Route path="/change-password" element={<ChangePasswordPage />} />
         <Route

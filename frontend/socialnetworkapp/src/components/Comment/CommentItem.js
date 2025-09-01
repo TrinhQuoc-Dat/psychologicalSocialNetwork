@@ -8,6 +8,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { FaImage, FaPaperPlane, FaSpinner } from "react-icons/fa";
 import Authorization from "../until/AuthorizationComponent";
+import BASE_URL from "../../services/baseUrl";
 
 
 const DropdownItem = ({ icon, children, onClick }) => (
@@ -31,7 +32,6 @@ const CommentItem = ({ comment, post, userId, onCommentAdded, handleCommentUpdat
     const [openComment, setOpenComment] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const formRef = useRef(null);
-    const BASE_URL = "http://localhost:8000"
 
     const toggleDropdown = () => {
         setIsOpen(!isOpen);

@@ -1,7 +1,6 @@
 import axios from "axios";
 import Authorization from "../until/AuthorizationComponent";
-
-const BASE_URL = 'http://localhost:8000/api';
+import BASE_URL from "../../services/baseUrl";
 
 const addReaction = async (postId, typeReaction) => {
     try {
@@ -10,7 +9,7 @@ const addReaction = async (postId, typeReaction) => {
         formData.append("reaction", typeReaction);
         console.log(typeReaction);
 
-        const res = await axios.post(`${BASE_URL}/reactions/`, formData, {
+        const res = await axios.post(`${BASE_URL}/api/reactions/`, formData, {
             headers: Authorization()
         });
         console.log(res);

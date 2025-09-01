@@ -5,9 +5,11 @@ import BASE_URL from "./baseUrl";
 
 export const getGroup = async (Groupid) => {
   try {
-    const response = await axios.get(`${BASE_URL}/api/group/${Groupid}`, {
+    console.log("Groupid", Groupid);
+    const response = await axios.get(`${BASE_URL}/api/group/${Groupid}/`, {
       headers: Authorization(),
     });
+    console.log("group: ", response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching user profile:", error);
@@ -39,6 +41,7 @@ export const followGroup = (groupId) => {
 };
 
 export const unfollowGroup = (groupId) => {
+
   return axios.post(`${BASE_URL}/api/group/${groupId}/unfollow/`,{}, {
     headers: Authorization()
   })

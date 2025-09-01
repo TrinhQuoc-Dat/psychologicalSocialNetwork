@@ -13,6 +13,12 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password
 from esocialnetworkapi.qchatbot_openai import load_llm, create_qa_chain, read_vectors_db, create_prompt, find_faq_answer, answer_query, is_psychology_post
+from django.views.generic import View
+from django.http import HttpResponse
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # load sẵn khi khởi động server để tránh load lại mỗi request
 llm = load_llm()
@@ -44,6 +50,7 @@ class UserViewSet(viewsets.ViewSet, generics.UpdateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser, parsers.JSONParser, parsers.FormParser]
+    permission_classes = [permissions.AllowAny]
 
     @action(methods=['get'], url_path='current-user', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
@@ -685,3 +692,14 @@ class ChatAPIView(APIView):
 
         return Response(response)
 
+
+class FrontendAppView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            with open(os.path.join(BASE_DIR, 'frontend', 'build', 'index.html')) as f:
+                return HttpResponse(f.read())
+        except FileNotFoundError:
+            return HttpResponse(
+                "React build not found. Run `npm run build` in frontend directory.",
+                status=501,
+            )

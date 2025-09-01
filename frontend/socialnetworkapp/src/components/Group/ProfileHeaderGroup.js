@@ -10,7 +10,7 @@ const ProfileHeaderGroup = ({ group }) => {
   const avatarInputRef = useRef(null);
   const coverInputRef = useRef(null);
   const { user: authUser, token } = useSelector((state) => state.auth);
-  const isOwner = authUser?.id === group?.creator.id;
+  const isOwner = authUser?.id === group?.creator?.id;
   const [isUpdating, setIsUpdating] = useState(false);
   const [follower, setFollower] = useState(0);
 

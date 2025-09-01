@@ -37,7 +37,7 @@ export const getUserProfile = async (userId) => {
 
 export const getUserPosts = async (userId, token, page = 0, size = 5) => {
   try {
-    const response = await axios.get(`${BASE_URL}/api/users/${userId}/posts`, {
+    const response = await axios.get(`${BASE_URL}/api/users/${userId}/posts/`, {
       headers:Authorization(),
       params: {
         page,
@@ -79,7 +79,7 @@ export const getAllUsers = async (
 
 export const updateUserAvatarOrCover = async (formData, token) => {
   try {
-    const res = await axios.put(`${BASE_URL}/user/update`, formData, {
+    const res = await axios.put(`${BASE_URL}/user/update/`, formData, {
       headers: {
         Authorization: token,
         "Content-Type": "multipart/form-data",

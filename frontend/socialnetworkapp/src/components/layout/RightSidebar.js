@@ -2,35 +2,33 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import BASE_URL from "../../services/baseUrl";
 import Authorization from "../until/AuthorizationComponent";
+import { useSelector } from "react-redux";
 
 const RightSidebar = () => {
   const [contacts, setContacts] = useState([]);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(false);
-
+  const { user } = useSelector((state) => state.auth);
   useEffect(() => {
     const fetchContacts = async () => {
       try {
-        console.log(`${BASE_URL}/api/contact/friends/?page=${page}&size=10`)
-        const res = await axios.get(
-          `${BASE_URL}/api/contact/friends/?page=${page}&size=10`,
-          { headers: Authorization() }
-        );
+        if (user) {
+          const res = await axios.get(
+            `${BASE_URL}/api/contact/friends/?page=${page}&size=10`,
+            { headers: Authorization() }
+          );
+          // Nếu có results thì append vào danh sách
+          const newContacts = res.data.results || res.data;
+          setContacts((prev) => [...prev, ...newContacts]);
 
-        console.log("contact ===> ", res.data.results);
-
-        
-
-        // Nếu có results thì append vào danh sách
-        const newContacts = res.data.results || res.data;
-        setContacts((prev) => [...prev, ...newContacts]);
-
-        // Kiểm tra còn trang tiếp theo không
-        if (res.data.next) {
-          setHasNext(true);
-        } else {
-          setHasNext(false);
+          // Kiểm tra còn trang tiếp theo không
+          if (res.data.next) {
+            setHasNext(true);
+          } else {
+            setHasNext(false);
+          }
         }
+
       } catch (error) {
         console.error("Lỗi khi lấy danh sách liên hệ:", error);
       }

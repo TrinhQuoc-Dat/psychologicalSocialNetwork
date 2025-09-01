@@ -14,7 +14,7 @@ const ProfileTimelineGroup = ({ posts, loadMore, hasMore, loading, group }) => {
   }, [inView, hasMore, loadMore, loading]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-10 gap-6 mt-6">
+    group && (<div className="max-w-6xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-10 gap-6 mt-6">
       {/* Cột Giới thiệu - chiếm 4 phần */}
       <div className="lg:col-span-4">
         <div className="sticky top-10">
@@ -32,13 +32,13 @@ const ProfileTimelineGroup = ({ posts, loadMore, hasMore, loading, group }) => {
                 <span className="text-gray-500">📍</span>
                 <span>{group?.location}</span>
               </li>
-              {group.creator.phone && (
+              {group.creator?.phone && (
                 <li className="flex items-start gap-2">
                   <span className="text-gray-500">📞</span>
                   <span>{group?.creator.phone}</span>
                 </li>)}
 
-              {group.creator.email && (
+              {group.creator?.email && (
                 <li className="flex items-start gap-2">
                   <span className="text-gray-500">✉️</span>
                   <span>{group?.creator.email}</span>
@@ -87,11 +87,8 @@ const ProfileTimelineGroup = ({ posts, loadMore, hasMore, loading, group }) => {
             }
           />}
         </div>
-
-
       </div>
-    </div>
-
+    </div>)
   );
 };
 

@@ -1,7 +1,7 @@
 import React from 'react';
 
 const ProfilePhotos = ({ posts }) => {
-  const allPhotos = posts.reduce((acc, post) => {
+  const allPhotos = posts?.reduce((acc, post) => {
     return [...acc, ...(post.images || [])];
   }, []);
   console.log(allPhotos);

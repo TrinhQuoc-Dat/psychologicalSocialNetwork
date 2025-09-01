@@ -1,4 +1,4 @@
-from django.urls import path, include
+from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
 from .admin import admin_site, admin
 from esocialnetworkapi import views
@@ -22,6 +22,7 @@ urlpatterns = [
     path('api/users/<int:user_id>/posts/', views.UserPostListView.as_view(), name='user-posts'),
     path('api/users/<int:id>', views.UserProfileView.as_view(), name='user-profile'),
     path('api/chat/', views.ChatAPIView.as_view(), name="chat-api"),
+    re_path(r'^.*$', views.FrontendAppView.as_view()),
 
 ]
 

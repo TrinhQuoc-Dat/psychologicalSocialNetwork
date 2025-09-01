@@ -1,8 +1,7 @@
 import axios from "axios";
+import BASE_URL from "../../services/baseUrl";
 
 const ReactionOfPost = async (postId) => {
-    const BASE_URL = 'http://localhost:8000';
-
     try {
         const res = await axios.get(`${BASE_URL}/api/reactions/post-reactions/?post_id=${postId}`, {
             headers: {

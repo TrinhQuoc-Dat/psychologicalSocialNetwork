@@ -15,6 +15,7 @@ import {
   FiX,
 } from "react-icons/fi";
 
+
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
     username: "",
@@ -125,6 +126,7 @@ const RegisterPage = () => {
     });
     if (avatar) formDataToSend.append("avatar", avatar);
     if (cover) formDataToSend.append("cover", cover);
+    formDataToSend.append("last_login", new Date().toISOString());
 
     try {
       await dispatch(registerUser(formDataToSend)).unwrap();

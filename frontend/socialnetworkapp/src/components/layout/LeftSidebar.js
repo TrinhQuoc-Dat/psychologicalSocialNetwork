@@ -9,13 +9,15 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getFollowerGroup } from "../../services/groupService";
+import { useSelector } from "react-redux";
 
 const LeftSidebar = () => {
   const [page, setPage] = useState(1);
   const [userGroups, setUserGroups] = useState(null)
   const [hasMore, setHasMore] = useState(true);
-
+  const { user } = useSelector((state) => state.auth);
   useEffect(() => {
+
     const fetchData = async () => {
       try {
         const data = await getFollowerGroup(page, 5);
@@ -31,8 +33,9 @@ const LeftSidebar = () => {
         console.error("Failed to fetch followed groups", error);
       }
     };
-
-    fetchData();
+    if (user) {
+      fetchData();
+    }
   }, [page]);
   const navigate = useNavigate();
 
