@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, UGroup, Post,Tag, PostImage,Contact, ThreadRoom, ThreadRoomParticipant, Reaction, Comment, SurveyPost,SurveyOption,SurveyDraftAnswer,SurveyDraft,SurveyQuestion
+from .models import User, UGroup, Post,Tag, PostImage,Contact, Notification, Reaction, Comment, SurveyPost,SurveyOption,SurveyDraftAnswer,SurveyDraft,SurveyQuestion
 from django.contrib.auth.hashers import make_password
 
 class UserSerializer(serializers.ModelSerializer):
@@ -369,3 +369,15 @@ class SimpleGroupSerializer(serializers.ModelSerializer):
         if obj.avatar:
             return obj.avatar.url
         return None
+    
+
+class NotificationSerializer(serializers.ModelSerializer):
+    recipient_username = serializers.CharField(source="recipient.username", read_only=True)
+    recipient_avatar = serializers.ImageField(source="recipient.avatar", read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = [
+            "id", "recipient", "recipient_username", "recipient_avatar",
+            "message", "link", "is_read", "created_at", "notification_type"
+        ]

@@ -143,7 +143,7 @@ class GroupPost(models.Model):
 
 # ============= THông Báo ======================
 class Notification(models.Model):
-    NOTIF_TYPE = [('POSTGROUP', 'postgroup'), ('SYSTEM', 'system'), ("REACTION", "reaction"), ("COMMENT", "comment")]
+    NOTIF_TYPE = [('POSTGROUP', 'postgroup'), ('SYSTEM', 'system'), ("REACTION", "reaction"), ("COMMENT", "comment"), ("CONTACT", "contact")]
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications_received')
     message = models.CharField(max_length=500)
     link = models.CharField(max_length=255, null=True, blank=True)

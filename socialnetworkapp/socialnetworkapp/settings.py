@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'ckeditor',
     'ckeditor_uploader',
     'rest_framework',
+    'rest_framework.authtoken',
     'drf_yasg',
     'cloudinary',
     'cloudinary_storage',
@@ -55,10 +56,11 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     "debug_toolbar",
-    # "channels",
+    "channels",
+    "notifications",
 ]
 # app socket
-ASGI_APPLICATION = "EventApi.asgi.applicationSocket"
+ASGI_APPLICATION = "socialnetworkapp.asgi.application"
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -80,6 +82,7 @@ MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware', 
+
 ]
 
 ROOT_URLCONF = 'socialnetworkapp.urls'
