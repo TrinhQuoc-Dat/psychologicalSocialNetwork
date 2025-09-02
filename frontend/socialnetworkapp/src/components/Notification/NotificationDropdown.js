@@ -101,8 +101,8 @@ const NotificationDropdown = ({
                   {/* Avatar with notification indicator */}
                   <div className="relative flex-shrink-0">
                     <img
-                      src={notification.recipient_avatar || "/default-avatar.png"}
-                      alt={notification.recipient_username}
+                      src={notification.actor_avatar || "/default-avatar.png"}
+                      alt={notification.actor_first_name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     {!notification.is_read && (
@@ -114,7 +114,9 @@ const NotificationDropdown = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
                       <p className="text-sm font-medium text-gray-900 leading-tight">
-                        <span className="font-semibold">{notification.recipient_username}</span> {notification.message}
+                        <span className="font-semibold">{notification.notification_type}<br/></span>
+                          <strong>{notification.actor_first_name} {notification.actor_last_name} </strong>
+                         {notification.message}
                       </p>
                       {getNotificationIcon(notification.notification_type)}
                     </div>

@@ -372,12 +372,21 @@ class SimpleGroupSerializer(serializers.ModelSerializer):
     
 
 class NotificationSerializer(serializers.ModelSerializer):
-    recipient_username = serializers.CharField(source="recipient.username", read_only=True)
-    recipient_avatar = serializers.ImageField(source="recipient.avatar", read_only=True)
+    actor_first_name = serializers.CharField(source="actor.first_name", read_only=True)
+    actor_last_name = serializers.CharField(source="actor.last_name", read_only=True)
+    actor_avatar = serializers.ImageField(source="actor.avatar", read_only=True)
 
     class Meta:
         model = Notification
         fields = [
-            "id", "recipient", "recipient_username", "recipient_avatar",
-            "message", "link", "is_read", "created_at", "notification_type"
+            "id",
+            "recipient",
+            "actor_first_name",
+            "actor_last_name",
+            "message",
+            "link",
+            "is_read",
+            "created_at",
+            "notification_type",
+            "actor_avatar",
         ]

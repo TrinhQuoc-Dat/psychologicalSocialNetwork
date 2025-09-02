@@ -5,7 +5,7 @@ from django.utils import timezone
 
 channel_layer = get_channel_layer()
 
-def create_and_send_notification(recipient, message, notif_type, link=None):
+def create_and_send_notification(recipient, message, notif_type, actor, link=None):
     # Lưu vào DB
     notif = Notification.objects.create(
         recipient=recipient,
@@ -13,6 +13,7 @@ def create_and_send_notification(recipient, message, notif_type, link=None):
         link=link,
         notification_type=notif_type,
         created_at=timezone.now(),
+        actor=actor,
     )
 
     # Gửi qua WebSocket tới user
@@ -24,9 +25,12 @@ def create_and_send_notification(recipient, message, notif_type, link=None):
                 "id": notif.id,
                 "message": notif.message,
                 "link": notif.link,
-                "notif_type": notif.notification_type,
+                "notification_type": notif.notification_type,
                 "is_read": notif.is_read,
                 "created_at": notif.created_at.isoformat(),
+                "actor_avatar": notif.actor.avatar.url if (notif.actor and notif.actor.avatar) else None,
+                "actor_first_name":notif.actor.first_name,
+                "actor_last_name": notif.actor.last_name,
             },
         },
     )

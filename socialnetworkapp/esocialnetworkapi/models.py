@@ -145,6 +145,7 @@ class GroupPost(models.Model):
 class Notification(models.Model):
     NOTIF_TYPE = [('POSTGROUP', 'postgroup'), ('SYSTEM', 'system'), ("REACTION", "reaction"), ("COMMENT", "comment"), ("CONTACT", "contact")]
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications_received')
+    actor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications_sent', null=True, blank=True)
     message = models.CharField(max_length=500)
     link = models.CharField(max_length=255, null=True, blank=True)
     is_read = models.BooleanField(default=False)

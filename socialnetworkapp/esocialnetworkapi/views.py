@@ -737,7 +737,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     def unread(self, request):
         queryset = self.get_queryset().filter(is_read=False)
 
-        paginator = paginators.ContactPaginator()
+        paginator = paginators.NotificationPaginator()
         page = paginator.paginate_queryset(queryset, request)
         serializer = self.get_serializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)

@@ -6,9 +6,10 @@ def add_reaction(user, post, reaction_type):
     if post_author != user:  # không tự thông báo cho chính mình
         create_and_send_notification(
             recipient=post_author,
-            message=f"{user.first_name} {user.last_name} đã {reaction_type} bài viết của bạn",
+            message=f"Đã {reaction_type} bài viết của bạn",
             notif_type="REACTION",
-            link=f"/posts/{post.id}/"
+            link=f"/posts/{post.id}/",
+            actor=user
         )
 
 def delete_reaction(user, post, reaction_type):
@@ -17,9 +18,10 @@ def delete_reaction(user, post, reaction_type):
     if post_author != user:  # không tự thông báo cho chính mình
         create_and_send_notification(
             recipient=post_author,
-            message=f"{user.first_name} {user.last_name} đã xoá {reaction_type} bài viết của bạn",
+            message=f"Đã xoá {reaction_type} bài viết của bạn",
             notif_type="REACTION",
-            link=f"/posts/{post.id}/"
+            link=f"/posts/{post.id}/",
+            actor=user
         )
 
 
@@ -29,9 +31,10 @@ def add_comment(user, post, content):
     if post_author != user:
         create_and_send_notification(
             recipient=post_author,
-            message=f"{user.first_name} {user.last_name} đã bình luận vào bài viết của bạn",
+            message=f"Đã bình luận vào bài viết của bạn",
             notif_type="COMMENT",
-            link=f"/posts/{post.id}/"
+            link=f"/posts/{post.id}/",
+            actor=user
         )
 
 
@@ -39,9 +42,10 @@ def send_friend_request(from_user, to_user):
     # tạo Contact ...
     create_and_send_notification(
         recipient=to_user,
-        message=f"{from_user.first_name} {from_user.last_name} đã gửi cho bạn một lời mời kết nối",
+        message=f"Đã gửi cho bạn một lời mời kết nối",
         notif_type="CONTACT",
-        link=f"/contacts/"
+        link=f"/contacts/",
+        actor=from_user
     )
 
 
@@ -54,5 +58,6 @@ def create_group_post(user, group, post):
                 recipient=member,
                 message=f"Có bài viết mới trong nhóm {group.group_name}",
                 notif_type="POSTGROUP",
-                link=f"/groups/{group.id}/posts/{post.id}/"
+                link=f"/groups/{group.id}/posts/{post.id}/",
+                actor=user
             )
