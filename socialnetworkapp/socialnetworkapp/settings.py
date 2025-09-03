@@ -54,7 +54,7 @@ INSTALLED_APPS = [
     'social_django',
     'rest_framework_simplejwt',
     'corsheaders',
-    "debug_toolbar",
+    # "debug_toolbar",
     # "channels",
 ]
 # app socket
@@ -77,7 +77,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware', 
 ]
