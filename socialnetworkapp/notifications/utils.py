@@ -34,3 +34,5 @@ def create_and_send_notification(recipient, message, notif_type, actor, link=Non
             },
         },
     )
+
+

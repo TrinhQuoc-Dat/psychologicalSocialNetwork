@@ -82,7 +82,7 @@ const NotificationDropdown = ({
 
         {/* Notification list */}
         <div className="max-h-96 overflow-y-auto divide-y divide-gray-100">
-          {notifications.length > 0 ? (
+          {notifications && notifications.length > 0 ? (
             notifications.map((notification) => (
               <Link
                 key={notification.id}

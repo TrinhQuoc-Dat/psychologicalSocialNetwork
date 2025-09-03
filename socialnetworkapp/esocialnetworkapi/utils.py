@@ -1,4 +1,11 @@
 from notifications.utils import create_and_send_notification
+import re
+from urllib.parse import urlparse
+
+SAFE_DOMAINS = ["youtube.com", "facebook.com", "edu.vn", 'google.com', 
+                'tinyurl.com', 'myaloha.vn', 'forms.gle', 'tamlyhoctoipham.com', 
+                'tamly.blog', 'tamly.com', 'wikipedia.org', 'trangtamly.blog',
+                'tamlylumos.com', 'tamly3c.com', '.gov.vn', 'hospital.com']
 
 def add_reaction(user, post, reaction_type):
     # tạo reaction ...
@@ -61,3 +68,8 @@ def create_group_post(user, group, post):
                 link=f"/groups/{group.id}/posts/{post.id}/",
                 actor=user
             )
+
+
+def is_safe(link):
+    domain = urlparse(link).netloc
+    return any(safe in domain for safe in SAFE_DOMAINS)

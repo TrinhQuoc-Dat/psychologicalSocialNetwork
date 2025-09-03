@@ -2,9 +2,10 @@ import { addNotification } from "../features/notifications/notificationSlice";
 
 let socket = null;
 const token = localStorage.getItem("token");
+const BASE_WEBSOCKETM='ws://127.0.0.1:8000';
 
 export const connectNotificationSocket = (dispatch) => {
-  socket = new WebSocket(`ws://127.0.0.1:8000/ws/notifications/?token=${token}`);
+  socket = new WebSocket(`${BASE_WEBSOCKETM}/ws/notifications/?token=${token}`);
 
   socket.onopen = () => {
     console.log("✅ WebSocket connected!");

@@ -16,6 +16,8 @@ from esocialnetworkapi.qchatbot_openai import load_llm, create_qa_chain, read_ve
 from django.views.generic import View
 from django.http import HttpResponse
 import os
+import re
+from urllib.parse import urlparse
 from pathlib import Path
 from esocialnetworkapi import utils
 
@@ -35,7 +37,6 @@ TEMPLATE = """
     5. Nếu là câu hỏi về lý thuyết chỉ cần trả lời câu hỏi, không đưa ra lời khuyên.
     6. Nếu câu hỏi KHÔNG liên quan đến tâm lý học, hãy trả lời ngắn gọn, lịch sự rằng bạn chỉ hỗ trợ các chủ đề liên quan đến tâm lý, 
        và gợi ý người dùng đặt câu hỏi khác phù hợp.
-    7. Không bao giờ thay thế cho bác sĩ hoặc nhà trị liệu chuyên nghiệp.
     Thông tin (context):  {context}
 
     Câu hỏi: {question}
@@ -47,6 +48,7 @@ TEMPLATE = """
 prompt = create_prompt(TEMPLATE)
 db = read_vectors_db()
 qa_chain = create_qa_chain(prompt, llm, db)
+
 
 class UserViewSet(viewsets.ViewSet, generics.UpdateAPIView):
     queryset = User.objects.filter(is_active=True)
@@ -156,9 +158,18 @@ class PostViewSet(viewsets.ModelViewSet):
         instance.active = False
         instance.deleted_date = timezone.now()
         instance.save()
+    
+
 
     def perform_create(self, serializer):
         content = self.request.data.get("content")
+
+        pattern = r'(https?://[^\s]+)'
+        links = re.findall(pattern, content)
+        for link in links:
+            if not utils.is_safe(link):
+                raise ValidationError("Chúng tôi phát hiện bạn gán link đọc hại, vui lòng hãy kiểm tra lại.")
+
         # AI kiểm tra nội dung
         if not is_psychology_post(llm, content):
             raise ValidationError("Bài viết không thuộc lĩnh vực tâm lý học, không thể chia sẻ.")
@@ -177,6 +188,18 @@ class PostViewSet(viewsets.ModelViewSet):
 
 
     def perform_update(self, serializer):
+        content = self.request.data.get("content")
+
+        pattern = r'(https?://[^\s]+)'
+        links = re.findall(pattern, content)
+        for link in links:
+            if not utils.is_safe(link):
+                raise ValidationError("Chúng tôi phát hiện bạn gán link đọc hại, vui lòng hãy kiểm tra lại.")
+
+        # AI kiểm tra nội dung
+        if not is_psychology_post(llm, content):
+            raise ValidationError("Bài viết không thuộc lĩnh vực tâm lý học, không thể chia sẻ.")
+        
         post = serializer.save()
 
         # Lấy danh sách ID ảnh cũ cần giữ lại
