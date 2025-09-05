@@ -43,7 +43,7 @@ const LoginPage = () => {
   const [valid, setValid] = useState(null);
 
   useEffect(() => {
-    document.title = "Đăng nhập | Hệ thống";
+    //document.title = "Đăng nhập | Hệ thống";
     // Load saved credentials if "Remember me" was checked
     const savedUsername = localStorage.getItem("username");
     if (savedUsername) {

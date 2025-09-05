@@ -156,10 +156,9 @@ class Notification(models.Model):
 class SurveyPost(models.Model):
     TYPE = [
         ('MENTAL_HEALTH', 'Mental Health'),
-        ('TRAINING_PROGRAM', 'Training Program'),
-        ('RECRUITMENT_INFORMATION', 'Recruitment Info'),
-        ('INCOME', 'Income'),
-        ('EMPLOYMENT_SITUATION', 'Employment Situation'),
+        ('HANDLE_SITUATION', 'Handle situation'),
+        ('RECRUITMENT_INFO', 'Recruitment Info'),
+        ('INCOME', 'Income')
     ]
     STATUS = [('ACTIVE', 'active'), ('EXPIRED', 'expired')]
     post = models.OneToOneField(Post, on_delete=models.CASCADE, primary_key=True)

@@ -78,7 +78,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware', 
 
@@ -181,7 +180,10 @@ DATABASES = {
         'NAME': 'socialnetworkdb',
         'USER': 'root',
         'PASSWORD': 'Admin@123',
-        'HOST': ''
+        'HOST': '',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
     }
 }
 

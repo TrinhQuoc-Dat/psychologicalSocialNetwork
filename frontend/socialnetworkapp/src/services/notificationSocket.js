@@ -2,9 +2,10 @@ import { addNotification } from "../features/notifications/notificationSlice";
 
 let socket = null;
 const token = localStorage.getItem("token");
-const BASE_WEBSOCKETM='ws://127.0.0.1:8000';
+const BASE_WEBSOCKETM='wss://gibbon-smooth-stingray.ngrok-free.app';
 
 export const connectNotificationSocket = (dispatch) => {
+  if (token === null || token === undefined) return;
   socket = new WebSocket(`${BASE_WEBSOCKETM}/ws/notifications/?token=${token}`);
 
   socket.onopen = () => {
