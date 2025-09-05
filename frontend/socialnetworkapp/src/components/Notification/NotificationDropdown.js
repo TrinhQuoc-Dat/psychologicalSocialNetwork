@@ -14,10 +14,26 @@ const NotificationDropdown = ({
     e.stopPropagation();
     onMarkAsRead(id);
   };
+  const formatDateNow =(time) => {
+      // Nếu backend trả về "2025-09-02 12:00:00", convert sang ISO
+      if (typeof time === "string" && time.includes(" ")) {
+        time = time.replace(" ", "T") + "Z";
+      }
+
+      const date = new Date(time);
+      if (isNaN(date)) return "Thời gian không hợp lệ";
+
+      return formatDistanceToNow(date, {
+        addSuffix: true,
+        locale: vi,
+      });
+  }
+
+  console.log("notifications ==== > ", notifications);
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case "INVITATION":
+      case "CONTACT":
         return (
           <div className="bg-blue-100 p-2 rounded-full text-blue-600">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -66,30 +82,30 @@ const NotificationDropdown = ({
 
         {/* Notification list */}
         <div className="max-h-96 overflow-y-auto divide-y divide-gray-100">
-          {notifications.length > 0 ? (
+          {notifications && notifications.length > 0 ? (
             notifications.map((notification) => (
               <Link
                 key={notification.id}
                 to={notification.link}
                 onClick={() => {
-                  if (!notification.read) {
+                  if (!notification.is_read) {
                     onMarkAsRead(notification.id);
                   }
                   onClose();
                 }}
                 className={`block px-4 py-3 hover:bg-gray-50 transition-colors ${
-                  !notification.read ? "bg-blue-50" : ""
+                  !notification.is_read ? "bg-blue-50" : ""
                 }`}
               >
                 <div className="flex items-start space-x-3">
                   {/* Avatar with notification indicator */}
                   <div className="relative flex-shrink-0">
                     <img
-                      src={notification.senderAvatar || "/default-avatar.png"}
-                      alt={notification.senderName}
+                      src={notification.actor_avatar || "/default-avatar.png"}
+                      alt={notification.actor_first_name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
-                    {!notification.read && (
+                    {!notification.is_read && (
                       <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white"></div>
                     )}
                   </div>
@@ -98,17 +114,16 @@ const NotificationDropdown = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
                       <p className="text-sm font-medium text-gray-900 leading-tight">
-                        <span className="font-semibold">{notification.senderName}</span> {notification.message}
+                        <span className="font-semibold">{notification.notification_type}<br/></span>
+                          <strong>{notification.actor_first_name} {notification.actor_last_name} </strong>
+                         {notification.message}
                       </p>
-                      {getNotificationIcon(notification.type)}
+                      {getNotificationIcon(notification.notification_type)}
                     </div>
                     
                     <div className="flex justify-between items-center mt-1">
                       <p className="text-xs text-gray-500">
-                        {formatDistanceToNow(new Date(notification.createdAt), {
-                          addSuffix: true,
-                          locale: vi,
-                        })}
+                        {formatDateNow(notification.created_at)}
                       </p>
                       {!notification.read && (
                         <button

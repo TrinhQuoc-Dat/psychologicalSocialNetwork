@@ -1,51 +1,51 @@
-// import { useEffect } from 'react';
-// import { useSelector, useDispatch } from 'react-redux';
-// import { 
-//   setNotifications, 
-//   markAsRead as markAsReadAction,
-//   markAllAsRead as markAllAsReadAction
-// } from '../features/notifications/notificationSlice';
-// import { 
-//   connectNotificationSocket, 
-//   disconnectNotificationSocket 
-// } from '../services/notificationSocket';
-// import NotificationService from '../services/notificationService';
+import { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { 
+  setNotifications, 
+  markAsRead as markAsReadAction,
+  markAllAsRead as markAllAsReadAction
+} from '../features/notifications/notificationSlice';
+import { 
+  connectNotificationSocket, 
+  disconnectNotificationSocket 
+} from '../services/notificationSocket';
+import NotificationService from '../services/notificationService';
 
-// const useNotifications = () => {
-//   const dispatch = useDispatch();
-//   const { user, token } = useSelector(state => state.auth);
-//   const notifications = useSelector(state => state.notifications);
+const useNotifications = () => {
+  const dispatch = useDispatch();
+  const { user } = useSelector(state => state.auth);
+  const notifications = useSelector(state => state.notifications);
 
-//   useEffect(() => {
-//     if (user) {
-//       // Load initial notifications
-//       NotificationService.getUserNotifications()
-//         .then(data => dispatch(setNotifications(data)));
+  useEffect(() => {
+    if (user) {
+      // Load initial notifications
+      NotificationService.getUserNotifications()
+        .then(data => dispatch(setNotifications(data.results)));
       
-//       // Connect to WebSocket
-//       connectNotificationSocket(dispatch, token);
+      // Connect to WebSocket
+      connectNotificationSocket(dispatch);
       
-//       return () => {
-//         disconnectNotificationSocket();
-//       };
-//     }
-//   }, [user, dispatch]);
+      return () => {
+        disconnectNotificationSocket();
+      };
+    }
+  }, [user, dispatch]);
 
-//   const handleMarkAsRead = (id) => {
-//     NotificationService.markAsRead(id)
-//       .then(() => dispatch(markAsReadAction(id)));
-//   };
+  const handleMarkAsRead = (id) => {
+    NotificationService.markAsRead(id)
+      .then(() => dispatch(markAsReadAction(id)));
+  };
 
-//   const handleMarkAllAsRead = () => {
-//     NotificationService.markAllAsRead()
-//       .then(() => dispatch(markAllAsReadAction()));
-//   };
+  const handleMarkAllAsRead = () => {
+    NotificationService.markAllAsRead()
+      .then(() => dispatch(markAllAsReadAction()));
+  };
 
-//   return {
-//     notifications,
-//     handleMarkAsRead,
-//     handleMarkAllAsRead,
-//   };
-// };
+  return {
+    notifications,
+    handleMarkAsRead,
+    handleMarkAllAsRead,
+  };
+};
 
-// export default useNotifications;
+export default useNotifications;

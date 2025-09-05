@@ -12,6 +12,7 @@ router.register('reactions', views.ReactionViewSet, basename='reaction')
 router.register('survey', views.SurveyPostViewSet, basename='survey')
 router.register('group', views.GroupViewSet, basename='group')
 router.register('contact', views.ContactViewSet, basename='contact')
+router.register('notifications', views.NotificationViewSet, basename='notifications')
 
 urlpatterns = [
     path('admin_all/', admin.site.urls, name="admin_all"),

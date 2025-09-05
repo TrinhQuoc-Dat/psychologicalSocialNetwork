@@ -9,17 +9,17 @@ const ProfileAbout = ({ user }) => {
     {
       title: 'Thông tin cơ bản',
       items: [
-        { label: 'Vai trò', value: user.role, icon: <FaIdBadge className="text-blue-500 w-5 h-5" /> },
-        { label: 'Họ', value: user.first_name, icon: <FaUser className="text-green-500 w-5 h-5" /> },
-        { label: 'Tên', value: user.last_name, icon: <FaUser className="text-green-500 w-5 h-5" /> },
-        { label: 'Ngày tham gia', value: formatDateFromArray(user.last_login), icon: <FaCalendarAlt className="text-purple-500 w-5 h-5" /> },
+        { label: 'Vai trò', value: user?.role, icon: <FaIdBadge className="text-blue-500 w-5 h-5" /> },
+        { label: 'Họ', value: user?.first_name, icon: <FaUser className="text-green-500 w-5 h-5" /> },
+        { label: 'Tên', value: user?.last_name, icon: <FaUser className="text-green-500 w-5 h-5" /> },
+        { label: 'Ngày tham gia', value: formatDateFromArray(user?.last_login), icon: <FaCalendarAlt className="text-purple-500 w-5 h-5" /> },
       ]
     },
     {
       title: 'Liên hệ',
       items: [
-        { label: 'Email', value: user.email, icon: <FaEnvelope className="text-red-500 w-5 h-5" /> },
-        { label: 'Điện thoại', value: user.phone, icon: <FaPhone className="text-yellow-500 w-5 h-5" /> },
+        { label: 'Email', value: user?.email, icon: <FaEnvelope className="text-red-500 w-5 h-5" /> },
+        { label: 'Điện thoại', value: user?.phone, icon: <FaPhone className="text-yellow-500 w-5 h-5" /> },
       ]
     }
   ];

@@ -1,69 +1,62 @@
-// import axios from "axios";
+import axios from "axios";
+import BASE_URL from "./baseUrl";
+import Authorization from "../components/until/AuthorizationComponent";
 
-// const BASE_URL = "http://localhost:8080/AlumniConnect/api";
+const NotificationService = {
+    getUserNotifications: async () => {
+        try {
+            const response = await axios.get(
+                `${BASE_URL}/api/notifications/`,
+                { headers: Authorization() }
+            );
+            console.log("/api/notifications/", response.data)
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching notifications:", error);
+            throw error;
+        }
+    },
 
-// const getAuthHeader = () => {
-//   const token = localStorage.getItem("token");
-//   return {
-//     headers: {
-//       Authorization: token,
-//     },
-//   };
-// };
-// const NotificationService = {
-//   getUserNotifications: async () => {
-//     try {
-//       const response = await axios.get(
-//         `${BASE_URL}/notifications`,
-//         getAuthHeader()
-//       );
-//       return response.data;
-//     } catch (error) {
-//       console.error("Error fetching notifications:", error);
-//       throw error;
-//     }
-//   },
+    getUnreadNotifications: async () => {
+        try {
+            const response = await axios.get(
+                `${BASE_URL}/api/notifications/unread/`,
+                { headers: Authorization() }
+            );
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching unread notifications:", error);
+            throw error;
+        }
+    },
 
-//   getUnreadNotifications: async () => {
-//     try {
-//       const response = await axios.get(
-//         `${BASE_URL}/notifications/unread`,
-//         getAuthHeader()
-//       );
-//       return response.data;
-//     } catch (error) {
-//       console.error("Error fetching unread notifications:", error);
-//       throw error;
-//     }
-//   },
+    markAsRead: async (id) => {
+        try {
+            const response = await axios.post(
+                `${BASE_URL}/api/notifications/${id}/read/`,
+                null,
+                { headers: Authorization() }
+            );
+            return response.data;
+        } catch (error) {
+            console.error(`Error marking notification ${id} as read:`, error);
+            throw error;
+        }
+    },
 
-//   markAsRead: async (id) => {
-//     try {
-//       const response = await axios.post(
-//         `${BASE_URL}/notifications/${id}/read`,
-//         null,
-//         getAuthHeader()
-//       );
-//       return response.data;
-//     } catch (error) {
-//       console.error(`Error marking notification ${id} as read:`, error);
-//       throw error;
-//     }
-//   },
+    markAllAsRead: async () => {
+        try {
+            const response = await axios.post(
+                `${BASE_URL}/api/notifications/read-all/`,
+                null,
+                { headers: Authorization() }
+            );
+            return response.data;
+        } catch (error) {
+            console.error("Error marking all notifications as read:", error);
+            throw error;
+        }
+    },
+};
 
-//   markAllAsRead: async () => {
-//     try {
-//       const response = await axios.post(
-//         `${BASE_URL}/notifications/read-all`,
-//         null,
-//         getAuthHeader()
-//       );
-//       return response.data;
-//     } catch (error) {
-//       console.error("Error marking all notifications as read:", error);
-//       throw error;
-//     }
-//   },
-// };
-
-// export default NotificationService;
+export default NotificationService;

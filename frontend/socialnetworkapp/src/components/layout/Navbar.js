@@ -33,8 +33,10 @@ const Navbar = ({ onOpenChat }) => {
   const currentPath = location.pathname;
 
   // Sử dụng hook useNotifications đã được cập nhật
-  // const { notifications, handleMarkAsRead, handleMarkAllAsRead } =
-  //   useNotifications();
+  const { notifications, handleMarkAsRead, handleMarkAllAsRead } =
+    useNotifications();
+
+  console.log('notifications', notifications)
 
   // Hàm xử lý tìm kiếm
   const handleSearch = (e) => {
@@ -329,7 +331,7 @@ const Navbar = ({ onOpenChat }) => {
               </div>
 
               {/* Notification Icon */}
-              {/* <div className="relative">
+              <div className="relative">
                 <button
                   onClick={() => {
                     setShowNotifications(!showNotifications);
@@ -370,7 +372,7 @@ const Navbar = ({ onOpenChat }) => {
                     onMarkAsRead={handleMarkAsRead}
                   />
                 )}
-              </div> */}
+              </div>
             </>
           )}
 

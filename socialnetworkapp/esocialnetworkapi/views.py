@@ -1,6 +1,6 @@
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from esocialnetworkapi.models import User, Comment, UGroup, Contact, ThreadRoom, ThreadRoomParticipant, Post, GroupPost, PostImage, Reaction, SurveyPost, UserSurveyOption, SurveyQuestion,SurveyOption,SurveyDraft,SurveyDraftAnswer
+from esocialnetworkapi.models import User, Comment, UGroup, Contact, ThreadRoom, Notification, Post, GroupPost, PostImage, Reaction, SurveyPost, UserSurveyOption, SurveyQuestion,SurveyOption,SurveyDraft,SurveyDraftAnswer
 from esocialnetworkapi import serializers, perms, paginators
 from rest_framework import viewsets, generics, parsers, permissions, status
 from django.db.models import Count, Q
@@ -16,7 +16,10 @@ from esocialnetworkapi.qchatbot_openai import load_llm, create_qa_chain, read_ve
 from django.views.generic import View
 from django.http import HttpResponse
 import os
+import re
+from urllib.parse import urlparse
 from pathlib import Path
+from esocialnetworkapi import utils
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -32,8 +35,8 @@ TEMPLATE = """
             KHÔNG đưa ra cách tự xử lý mà hãy khuyến khích họ tìm sự giúp đỡ từ chuyên gia tâm lý, 
             gọi ngay số điện thoại hỗ trợ khẩn cấp tại địa phương, hoặc liên hệ với bạn bè/người thân đáng tin cậy.
     5. Nếu là câu hỏi về lý thuyết chỉ cần trả lời câu hỏi, không đưa ra lời khuyên.
-    6. Không bao giờ thay thế cho bác sĩ hoặc nhà trị liệu chuyên nghiệp.  
-
+    6. Nếu câu hỏi KHÔNG liên quan đến tâm lý học, hãy trả lời ngắn gọn, lịch sự rằng bạn chỉ hỗ trợ các chủ đề liên quan đến tâm lý, 
+       và gợi ý người dùng đặt câu hỏi khác phù hợp.
     Thông tin (context):  {context}
 
     Câu hỏi: {question}
@@ -45,6 +48,7 @@ TEMPLATE = """
 prompt = create_prompt(TEMPLATE)
 db = read_vectors_db()
 qa_chain = create_qa_chain(prompt, llm, db)
+
 
 class UserViewSet(viewsets.ViewSet, generics.UpdateAPIView):
     queryset = User.objects.filter(is_active=True)
@@ -154,9 +158,18 @@ class PostViewSet(viewsets.ModelViewSet):
         instance.active = False
         instance.deleted_date = timezone.now()
         instance.save()
+    
+
 
     def perform_create(self, serializer):
         content = self.request.data.get("content")
+
+        pattern = r'(https?://[^\s]+)'
+        links = re.findall(pattern, content)
+        for link in links:
+            if not utils.is_safe(link):
+                raise ValidationError("Chúng tôi phát hiện bạn gán link đọc hại, vui lòng hãy kiểm tra lại.")
+
         # AI kiểm tra nội dung
         if not is_psychology_post(llm, content):
             raise ValidationError("Bài viết không thuộc lĩnh vực tâm lý học, không thể chia sẻ.")
@@ -167,6 +180,7 @@ class PostViewSet(viewsets.ModelViewSet):
         if group_id:
             group = get_object_or_404(UGroup, pk=group_id)
             GroupPost.objects.create(post=post, group=group)
+            utils.create_group_post(user=self.request.user, group=group, post=post)
         # Lưu ảnh
         images = self.request.FILES.getlist('images[]')
         for img in images:
@@ -174,6 +188,18 @@ class PostViewSet(viewsets.ModelViewSet):
 
 
     def perform_update(self, serializer):
+        content = self.request.data.get("content")
+
+        pattern = r'(https?://[^\s]+)'
+        links = re.findall(pattern, content)
+        for link in links:
+            if not utils.is_safe(link):
+                raise ValidationError("Chúng tôi phát hiện bạn gán link đọc hại, vui lòng hãy kiểm tra lại.")
+
+        # AI kiểm tra nội dung
+        if not is_psychology_post(llm, content):
+            raise ValidationError("Bài viết không thuộc lĩnh vực tâm lý học, không thể chia sẻ.")
+        
         post = serializer.save()
 
         # Lấy danh sách ID ảnh cũ cần giữ lại
@@ -283,7 +309,12 @@ class CommentViewSet(viewsets.ModelViewSet):
         return [permissions.AllowAny()]
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        comment = serializer.save(user=self.request.user)  
+        utils.add_comment(
+            user=self.request.user,
+            post=comment.post,
+            content=comment.content
+        )
 
     def perform_destroy(self, instance):
         def soft_delete(comment):
@@ -384,10 +415,12 @@ class ReactionViewSet(viewsets.ModelViewSet):
             if existing.reaction == new_reaction:
                 # Nếu reaction trùng → xóa
                 existing.delete()
+                utils.delete_reaction(user=user, post=post, reaction_type=existing.reaction)
             else:
                 # Nếu khác → cập nhật
                 existing.reaction = new_reaction
                 existing.save()
+                utils.add_reaction(user=user, post=post, reaction_type=existing.reaction)
         else:
             serializer.save(user=user)
 
@@ -619,6 +652,7 @@ class ContactViewSet(viewsets.ViewSet):
         if not created:
             return Response({"message": "Đã gửi lời mời hoặc đã có quan hệ"}, status=400)
 
+        utils.send_friend_request(from_user=request.user, to_user=to_user)
         return Response({"message": "Đã gửi lời mời kết bạn"}, status=201)
 
 
@@ -703,3 +737,48 @@ class FrontendAppView(View):
                 "React build not found. Run `npm run build` in frontend directory.",
                 status=501,
             )
+    
+
+# GET /api/notifications
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API cho thông báo
+    GET   /notifications/              -> danh sách tất cả thông báo của user
+    GET   /notifications/unread/       -> danh sách thông báo chưa đọc
+    POST    /notifications/{id}/read/  -> đánh dấu 1 thông báo đã đọc
+    POST  /notifications/read-all/     -> đánh dấu tất cả thông báo đã đọc
+    """
+    serializer_class = serializers.NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Notification.objects.filter(
+            recipient=self.request.user
+        ).order_by("-created_at")
+
+    @action(methods=["get"], detail=False, url_path="unread")
+    def unread(self, request):
+        queryset = self.get_queryset().filter(is_read=False)
+
+        paginator = paginators.NotificationPaginator()
+        page = paginator.paginate_queryset(queryset, request)
+        serializer = self.get_serializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+    @action(methods=["post"], detail=True, url_path="read")
+    def mark_as_read(self, request, pk=None):
+        notif = get_object_or_404(Notification, pk=pk, recipient=request.user)
+        notif.is_read = True
+        notif.save()
+        return Response(
+            {"success": True, "message": "Notification marked as read."},
+            status=status.HTTP_200_OK,
+        )
+
+    @action(methods=["post"], detail=False, url_path="read-all")
+    def mark_all_as_read(self, request):
+        self.get_queryset().filter(is_read=False).update(is_read=True)
+        return Response(
+            {"success": True, "message": "All notifications marked as read."},
+            status=status.HTTP_200_OK,
+        )
