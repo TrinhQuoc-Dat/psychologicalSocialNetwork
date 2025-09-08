@@ -196,17 +196,18 @@ class PostSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     replies_count = serializers.SerializerMethodField()
-    image = serializers.SerializerMethodField()
+    image = serializers.ImageField(required=False, allow_null=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ['id', 'content', 'image', 'user', 'post', 'parent',
+        fields = ['id', 'content', 'image', 'image_url', 'user', 'post', 'parent',
                   'created_date', 'replies_count']
 
     def get_replies_count(self, obj):
         return Comment.objects.filter(parent=obj, deleted_date__isnull=True).count()
     
-    def get_image(self, obj):
+    def get_image_url(self, obj):
         if obj.image:
             return obj.image.url
         return None

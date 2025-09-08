@@ -750,6 +750,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     serializer_class = serializers.NotificationSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = paginators.NotificationPaginator
 
     def get_queryset(self):
         return Notification.objects.filter(

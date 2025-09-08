@@ -9,7 +9,7 @@ import { toast } from "react-toastify";
 import { FaImage, FaPaperPlane, FaSpinner } from "react-icons/fa";
 import Authorization from "../until/AuthorizationComponent";
 import BASE_URL from "../../services/baseUrl";
-
+import { formatDateNow }from "../until/FormatDate"
 
 const DropdownItem = ({ icon, children, onClick }) => (
     <button
@@ -21,7 +21,7 @@ const DropdownItem = ({ icon, children, onClick }) => (
     </button>
 );
 
-const CommentItem = ({ comment, post, userId, onCommentAdded, handleCommentUpdated, showComment, handleDeleteComment, parentComment=null, isComment }) => {
+const CommentItem = ({ comment, post, userId, onCommentAdded, handleCommentUpdated, showComment, handleDeleteComment, parentComment = null, isComment }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [replyTo, setReplyTo] = useState(null);
     const [content, setContent] = useState(comment.content);
@@ -36,6 +36,7 @@ const CommentItem = ({ comment, post, userId, onCommentAdded, handleCommentUpdat
     const toggleDropdown = () => {
         setIsOpen(!isOpen);
     };
+
 
 
     const deleteComent = async () => {
@@ -92,7 +93,7 @@ const CommentItem = ({ comment, post, userId, onCommentAdded, handleCommentUpdat
 
     useEffect(() => {
         const handleClickOutside = (e) =>
-         dropdownRef.current && !dropdownRef.current.contains(e.target) && setIsOpen(false);
+            dropdownRef.current && !dropdownRef.current.contains(e.target) && setIsOpen(false);
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
@@ -138,19 +139,17 @@ const CommentItem = ({ comment, post, userId, onCommentAdded, handleCommentUpdat
                             <div className="flex items-center justify-content-start gap-3 mt-1 px-1">
                                 <div>
                                     <p className="text-sm text-gray-800 italic">
-                                        {Array.isArray(comment.created_date)
-                                            ? moment(comment.created_date).format('DD-MM-YYYY HH:mm')
-                                            : moment(comment.created_date, 'DD-MM-YYYY HH:mm').fromNow()}
+                                        {formatDateNow(comment.created_date)}
                                     </p>
                                 </div>
                                 <div>
-                                    {!isComment &&(
+                                    {!isComment && (
                                         <button
-                                        className="text-sm text-gray-900 "
-                                        onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
-                                    ><p className="text-sm text-gray-500 font-bold">Trả lời</p>
+                                            className="text-sm text-gray-900 "
+                                            onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
+                                        ><p className="text-sm text-gray-500 font-bold">Trả lời</p>
 
-                                    </button>
+                                        </button>
                                     )}
                                 </div>
                             </div>
@@ -207,14 +206,14 @@ const CommentItem = ({ comment, post, userId, onCommentAdded, handleCommentUpdat
                                     </div>
                                 </div>
                             )}
-                        </div>  
+                        </div>
                     </div>
                 </div>
             )}
 
             <div onDoubleClick={() => setUpdate(true)}>
-          {/* nội dung comment */}
-        </div>
+                {/* nội dung comment */}
+            </div>
 
             {update && (
                 <form onSubmit={(e) => {
