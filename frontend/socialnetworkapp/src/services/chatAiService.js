@@ -95,13 +95,6 @@ export const ChatAIService = {
         timestamp: serverTimestamp(),
         status: "sent",
       };
-      await addDoc(messagesRef, aiMessage);
-
-      await updateDoc(chatRef, {
-        lastMessage: aiMessage.text,
-        lastMessageTime: serverTimestamp(),
-        lastSenderId: "chat",
-      });
 
       return { success: true, messageId: docRef.id };
     } catch (error) {

@@ -2,7 +2,7 @@ import { addNotification } from "../features/notifications/notificationSlice";
 import { DOMAIN } from "./baseUrl";
 let socket = null;
 const token = localStorage.getItem("token");
-const BASE_WEBSOCKETM=`wss://${DOMAIN}`;
+const BASE_WEBSOCKETM=`ws://${DOMAIN}`;
 
 export const connectNotificationSocket = (dispatch) => {
   if (token === null || token === undefined) return;

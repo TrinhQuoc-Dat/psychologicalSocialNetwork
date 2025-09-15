@@ -7,7 +7,7 @@ from difflib import SequenceMatcher
 from esocialnetworkapi.libpy import libSupport
 from dotenv import load_dotenv
 import os
-
+from esocialnetworkapi.save_firestore import get_chat_history, db_firestore, save_chat_message
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "esocialnetworkapi", "vectorstores", "db_faiss")
 DATA_PATH = os.path.join(BASE_DIR, "esocialnetworkapi", "resources", "data")
@@ -54,7 +54,7 @@ def find_data_answer_vector(query, threshold=0.5):
     return None
 
 # Hàm xử lý 1 câu hỏi
-def answer_query(query, llm, template, qa_chain):
+def answer_query(query, llm, template, qa_chain, user_id):
     faq_answer = find_faq_answer(query)
     if faq_answer:
         data = {}
@@ -62,6 +62,12 @@ def answer_query(query, llm, template, qa_chain):
         data["question"] = False
         return data
     else:
+        # 2️⃣ Lấy context (summary + 5 câu gần nhất)
+        chat_context = get_context_for_model(user_id)
+        # 3️⃣ Tích hợp context vào câu hỏi để mô hình nhớ hội thoại
+        full_query = f"{chat_context}\nNgười dùng vừa hỏi: {query}"
+
+
         data_answer = find_data_answer_vector(query=query)
         # tìm trong vector DB gốc
         rag_context = ""
@@ -79,15 +85,22 @@ def answer_query(query, llm, template, qa_chain):
                 context += f"\n[Dữ liệu Từ 1 cá nhân viết ]\n{data_answer}"
             if rag_context:
                 context += f"\n[Dữ liệu Gốc]\n{rag_context}"
-
-            # dev
-            print("\n=== Nguồn tham chiếu ===")
-            for doc in rag_result["source_documents"]:
-                print(f"- {doc.metadata.get('source', 'unknown')}")
-            print("\n----------------------\n")
-            print("context", context)
             
-            result = ask_ai_content(context=context, query=query, llm=llm, template=template)
+            result = ask_ai_content(context=context, query=full_query, llm=llm, template=template)
+            # Lưu câu trả lời AI vào Firestore
+            save_chat_message(user_id, result.content, role="chat")
+
+            # Định kỳ tóm tắt lịch sử để tránh token quá dài
+            history = get_chat_history(user_id, limit=10)
+            if len(history) >= 10:
+                summary = summarize_chat(llm, history)
+                db_firestore.collection("chatAI").document('chat_'+str(user_id)).set({"summary": summary}, merge=True)
+
+            # định kỳ phân tích cảm xúc
+            if len(history) % 5 == 0:  # mỗi 5 message sẽ phân tích cảm xúc
+                emotion = analyze_user_emotion(llm, user_id)
+                print(f"Emotion detected: {emotion}")
+
             return {"result": result.content, "question": False}
 
         return rag_result
@@ -99,10 +112,10 @@ def ask_ai_content(context, query, llm, template):
     result = chain.invoke({"context": context, "question": query})
     return result
 
-# Sử dụng ChatGPT (GPT-4 hoặc 3.5)
+# Sử dụng ChatGPT
 def load_llm():
     llm = ChatOpenAI(
-        model_name="gpt-4o-mini",   # vẫn dùng GPT-4o-mini để trả lời
+        model_name="gpt-4o-mini",
         temperature=0.01
     )
     return llm
@@ -117,7 +130,7 @@ def create_qa_chain(prompt, llm, db):
         llm=llm,
         chain_type="stuff",
         retriever=db.as_retriever(search_kwargs={"k": 3}),
-        return_source_documents=True,  # để log context
+        return_source_documents=True, 
         chain_type_kwargs={'prompt': prompt}
     )
     return llm_chain
@@ -127,6 +140,48 @@ def read_vectors_db():
     embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
     db = FAISS.load_local(DB_PATH, embedding_model, allow_dangerous_deserialization=True)
     return db
+
+# Phân loại nọi dung
+def detect_emotion(llm, text):
+    prompt = f"""
+    Phân loại tâm trạng của người dùng dựa trên nội dung sau:
+    "{text}"
+    Trạng thái có thể là: VUI, BUỒN, LO LẮNG, TRẦM CẢM, TRUNG LẬP.
+    Chỉ trả về 1 từ.
+    """
+    result = llm.invoke(prompt)
+    return result.content.strip().upper()
+
+
+def summarize_chat(llm, history):
+    # Ghép các message lại để tóm tắt
+    conversation_text = "\n".join([f"{h['role']}: {h['message']}" for h in history])
+    prompt = f"""
+    Đây là đoạn hội thoại giữa user và AI:
+    {conversation_text}
+    Hãy tóm tắt nội dung chính trong 3-5 câu, giữ lại bối cảnh quan trọng.
+    """
+    result = llm.invoke(prompt)
+    return result.content.strip()
+
+
+def analyze_user_emotion(llm, user_id):
+    history = get_chat_history(user_id, limit=15)
+    user_messages = [h['message'] for h in history if h['role'] == user_id]
+    combined_text = " ".join(user_messages[-10:])  # lấy 10 câu gần nhất
+    emotion = detect_emotion(llm, combined_text)
+    db_firestore.collection("chatAI").document('chat_'+str(user_id)).set({"emotion": emotion}, merge=True)
+    return emotion
+
+
+def get_context_for_model(user_id):
+    summary = db_firestore.collection("chatAI").document('chat_'+str(user_id)).get().to_dict().get("summary", "")
+    last_messages = get_chat_history(user_id, limit=5)
+    chat_context = f"Tóm tắt trước đó: {summary}\nCuộc hội thoại gần đây:\n"
+    for m in last_messages:
+        chat_context += f"user_id:{m['role']}: {m['message']}\n"
+    return chat_context
+
 
 # === Chạy thử ===
 if __name__ == "__main__":

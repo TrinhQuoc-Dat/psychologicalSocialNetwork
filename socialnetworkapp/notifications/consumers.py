@@ -4,12 +4,12 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
-        self.user_group = None   # ✅ Khởi tạo mặc định
+        self.user_group = None   # hởi tạo mặc định
 
         if self.user.is_anonymous:
             await self.close()
         else:
-            self.user_group = f"user_{self.user.id}"   # ✅ Gán group theo user id
+            self.user_group = f"user_{self.user.id}"   # Gán group theo user id
 
             # Thêm vào group
             await self.channel_layer.group_add(
@@ -19,7 +19,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             await self.accept()
 
     async def disconnect(self, close_code):
-        # ✅ Chỉ discard nếu đã gán group
+        # Chỉ discard nếu đã gán group
         if self.user_group:
             await self.channel_layer.group_discard(self.user_group, self.channel_name)
 

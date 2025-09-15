@@ -7,7 +7,12 @@ export const login = async ({ username, password}) => {
   const client_secret = "HoEjHsI2hikoPFmsN45VtcTtzw3z7PJ043VLC2RB2i0MDMag4dRomSzqkGUMZ8XsbsWrCge89FgkYj8isqavt7M8bR1eAGrowyPGOpWECXWWQmA40XBtKa78aY1lLym1";
   const grant_type = "password";
   const response = await axios.post(`${BASE_URL}/o/token/`, { username, password, client_id, client_secret, grant_type});
-  console.log(response.data);
+  return response.data;
+};
+
+
+export const loginGoogleService = async ({ email, displayName, uid, photoURL}) => {
+  const response = await axios.post(`${BASE_URL}/api/users/google-login/`, { email, displayName, uid, photoURL});
   return response.data;
 };
 
