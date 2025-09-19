@@ -22,7 +22,6 @@ const ExpiredSurveyPostsPage = () => {
       const response = await fetchExpiredSurveyPosts(
         { page: pageNum, size },
       );
-      console.log(response.results)
 
       setPosts(prev => pageNum === 1 ? response.results : [...prev, ...response.results]);
       setTotal(response.count);

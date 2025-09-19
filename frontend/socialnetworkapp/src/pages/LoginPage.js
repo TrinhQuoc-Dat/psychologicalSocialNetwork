@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchCurrentUser, loginUser } from "../features/auth/authSlice";
+import { fetchCurrentUser, loginUser, loginGoogle } from "../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -15,16 +15,15 @@ import {
 // import { Button } from 'antd';
 import {
   GoogleAuthProvider,
-  FacebookAuthProvider,
   signInWithPopup,
   onAuthStateChanged,
 } from "firebase/auth";
 import { auth } from "../filebase/config";
 import { addDocument, generateKeywords } from "../filebase/service";
+import googleIcon from '../image/google.svg';
 
 
 const googleProvider = new GoogleAuthProvider();
-const fbProvider = new FacebookAuthProvider();
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -88,24 +87,27 @@ const LoginPage = () => {
     try {
       const result = await signInWithPopup(auth, provider);
       const { additionalUserInfo, user } = result;
-
-      if (additionalUserInfo?.isNewUser) {
-        await addDocument("users", {
-          displayName: user.displayName,
-          email: user.email,
-          photoURL: user.photoURL,
-          uid: user.uid,
-          providerId: additionalUserInfo.providerId,
-          keywords: generateKeywords(user.displayName?.toLowerCase()),
-        });
+      if (user){
+        const displayName = user.displayName;
+        const email = user.email;
+        const photoURL = user.photoURL;
+        const uid = user.uid;
+        try {
+          await dispatch(loginGoogle({email, displayName, uid, photoURL })).unwrap();
+          setLoginSuccess(true);
+          navigate("/");
+        } catch (err) {
+          console.error("Login failed:", err);
+          setValid(err);
+        } finally {
+          setIsSubmitting(false);
+        }
       }
+      console.log("additionalUserInfo", additionalUserInfo);
+      console.log("user", user);
 
       onAuthStateChanged(auth, (user) => {
-        if (user) {
-          dispatch(loginUser(formData)).unwrap();
-          setLoginSuccess(true);
-          navigate("/home");
-        }
+        navigate("/");
       });
     } catch (err) {
       console.error("OAuth login failed:", err);
@@ -311,17 +313,17 @@ const LoginPage = () => {
           </div>
         )}
         <button
-          style={{ width: '100%', marginBottom: 5 }}
           onClick={() => handleLoginOAuth2(googleProvider)}
+          className="
+            w-full mb-2 flex items-center justify-center gap-3 
+            rounded-lg border border-gray-300 bg-white 
+             py-1 text-base font-medium text-gray-700 
+            shadow hover:bg-gray-100 transition-all duration-200"
         >
+          <img src={googleIcon} alt="Google" className="w-5 h-5 object-contain" />
           Đăng nhập bằng Google
         </button>
-        <button
-          style={{ width: '100%' }}
-          onClick={() => handleLoginOAuth2(fbProvider)}
-        >
-          Đăng nhập bằng Facebook
-        </button>
+
       </motion.div>
     </motion.div>
   );

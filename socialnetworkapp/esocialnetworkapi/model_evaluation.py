@@ -5,11 +5,12 @@ from rouge import Rouge
 from langchain_openai import OpenAIEmbeddings
 from sentence_transformers import util
 from pathlib import Path
-from qchatbot_openai import load_llm, create_qa_chain, read_vectors_db, create_prompt, find_faq_answer, answer_query
+# from qchatbot_openai import load_llm, create_qa_chain, read_vectors_db, create_prompt, find_faq_answer, answer_query
 import os
 import torch
 from libpy import libSupport
 from dotenv import load_dotenv
+import matplotlib.pyplot as plt
 
 # Load .env
 load_dotenv()
@@ -19,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_PATH = os.path.join(BASE_DIR, "esocialnetworkapi", "resources", "data")
 
 # load sẵn khi khởi động server để tránh load lại mỗi request
-llm = load_llm()
+# llm = load_llm()
 TEMPLATE = """
     Bạn là một chuyên gia tâm lý. Hãy dựa vào context để trả lời ngắn gọn, rõ ràng (tối đa 3-5 câu), phù hợp với câu hỏi người dùng.  
     Yêu cầu:
@@ -39,9 +40,9 @@ TEMPLATE = """
     Trả lời:
     """
 
-prompt = create_prompt(TEMPLATE)
-db = read_vectors_db()
-qa_chain = create_qa_chain(prompt, llm, db)
+# prompt = create_prompt(TEMPLATE)
+# db = read_vectors_db()
+# qa_chain = create_qa_chain(prompt, llm, db)
 
 FAQ_TEST = libSupport.getFile(os.path.join(DATA_PATH, 'tamlyhoc_data_test.json'))
 if FAQ_TEST != None:
@@ -98,6 +99,7 @@ if __name__ == "__main__":
     exact_matches = 0
     index = 0
     end = len(FAQ_ASW)
+    hight_cosine, hight_lcs =0, 0
 
     while True:
         # Xử lý text
@@ -111,25 +113,34 @@ if __name__ == "__main__":
         rouge_score = rouge.get_scores(chat_answer, test_answer)[0]["rouge-l"]["f"]
         rouge_scores.append(rouge_score)
         
-        # Longest Common Subsequence
+        # s
         lcs_len = longest_common_subsequence(chat_answer, test_answer)
         lcs_score = lcs_len / max(len(chat_answer), len(test_answer))
         lcs_scores.append(lcs_score)
-
-        embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
-        # Cosine Similarity
-        emb1 = embedding_model.embed_query(chat_answer)
-        emb2 = embedding_model.embed_query(test_answer)
-        # conver sang tensor trước khi so sánh sos_sim
-        emb1_tensor = torch.tensor(emb1).unsqueeze(0)
-        emb2_tensor = torch.tensor(emb2).unsqueeze(0)
-
-        cosine_sim = util.cos_sim(emb1_tensor, emb2_tensor).item()
-        cosine_scores.append(cosine_sim)
+        if lcs_score > 0.5:
+            hight_lcs += 1
 
         index += 1
         if index == end:
             break
+
+    embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
+    answers = [a['ground_truth'].strip().lower() for a in FAQ_ASW]
+    tests = [t['ground_truth'].strip().lower() for t in FAQ_TEST]
+
+    embedding_answers = embedding_model.embed_documents(answers)
+    embedding_tests = embedding_model.embed_documents(tests)
+
+    # Cosine Similarity
+    for idx in range(len(answers)):
+        # conver sang tensor trước khi so sánh sos_sim
+        emb1_tensor = torch.tensor(embedding_answers[idx]).unsqueeze(0)
+        emb2_tensor = torch.tensor(embedding_tests[idx]).unsqueeze(0)
+
+        cosine_sim = util.cos_sim(emb1_tensor, emb2_tensor).item()
+        cosine_scores.append(cosine_sim)
+        if cosine_sim > 0.7:
+            hight_cosine += 1
         
     print("----------------------------")
     exact_match_score = exact_matches / len(FAQ_TEST)
@@ -137,8 +148,24 @@ if __name__ == "__main__":
     avg_cosine = np.mean(cosine_scores)
     avg_lcs = np.mean(lcs_scores)
 
-    print("Kết quả đánh giá Chatbot:")
-    print(f"- Exact Match: {exact_match_score:.4f}")
-    print(f"- ROUGE-L: {avg_rouge:.4f}")
-    print(f"- Cosine Similarity: {avg_cosine:.4f}")
-    print(f"- Longest Common Subsequence: {avg_lcs:.4f}")
+
+    print("----- KẾT QUẢ ĐÁNH GIÁ CHATBOT -----")
+    print(f"Exact Match: {exact_match_score:.4f} ({exact_matches}/{len(FAQ_ASW)})")
+    print(f"ROUGE-L trung bình: {avg_rouge:.4f}")
+    print(f"Cosine Similarity trung bình: {avg_cosine:.4f} | Số câu > 0.7: {hight_cosine}/{len(FAQ_ASW)}")
+    print(f"LCS trung bình: {avg_lcs:.4f} | Số câu > 0.5: {hight_lcs}/{len(FAQ_ASW)}")
+
+    metrics = ["Exact Match", "Rouge-L", "Cosine", "LCS"]
+    values = [exact_match_score, avg_rouge, avg_cosine, avg_lcs]
+
+    plt.figure(figsize=(8,5))
+    bars = plt.bar(metrics, values, color=['skyblue', 'orange', 'green', 'purple'])
+    plt.title("Đánh giá Chatbot theo các thang đo")
+    plt.ylim(0,1)
+    plt.ylabel("Điểm trung bình")
+    for bar, val in zip(bars, values):
+        plt.text(bar.get_x() + bar.get_width()/2, 
+                 val + 0.02, 
+                 f"{val:.2f}", ha='center', fontsize=10)
+
+    plt.show()

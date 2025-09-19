@@ -1,11 +1,24 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { login, register, getCurrentUser } from "../../services/authService";
+import { login, register, getCurrentUser, loginGoogleService } from "../../services/authService";
 
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async ({ username, password}, { rejectWithValue }) => {
     try {
       return await login({ username, password });
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: "Đăng nhập thất bại!" }
+      );
+    }
+  }
+);
+
+export const loginGoogle = createAsyncThunk(
+  "auth/loginGoogle",
+  async ({ email, displayName, uid, photoURL}, { rejectWithValue }) => {
+    try {
+      return await loginGoogleService({ email, displayName, uid, photoURL});
     } catch (error) {
       return rejectWithValue(
         error.response?.data || { message: "Đăng nhập thất bại!" }
@@ -76,6 +89,21 @@ const authSlice = createSlice({
         localStorage.setItem("role", action.payload.role);
       })
       .addCase(loginUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Đăng nhập thất bại!";
+      })
+      .addCase(loginGoogle.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(loginGoogle.fulfilled, (state, action) => {
+        state.loading = false;
+        state.token = action.payload.access_token;
+        state.role = action.payload.role;
+        localStorage.setItem("token", action.payload.access_token);
+        localStorage.setItem("role", action.payload.role);
+      })
+      .addCase(loginGoogle.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || "Đăng nhập thất bại!";
       })

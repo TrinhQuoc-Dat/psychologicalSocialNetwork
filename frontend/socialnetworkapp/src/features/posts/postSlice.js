@@ -4,7 +4,7 @@ import {
   updatePost as updatePostService,
   fetchPosts as fetchPostsService,
 } from "../../services/postService";
-import { getSurveyStatistics as getSurveyStatisticsService,} from "../../services/surveyPostService";
+import { getSurveyStatistics as getSurveyStatisticsService, } from "../../services/surveyPostService";
 
 export const fetchSurveyStatistics = createAsyncThunk(
   "posts/fetchSurveyStatistics",
@@ -24,7 +24,6 @@ export const fetchPosts = createAsyncThunk(
   async ({ page = 1, size = 5, refresh = false }, { rejectWithValue }) => {
     try {
       const data = await fetchPostsService({ page, size });
-      console.log(data)
       return {
         posts: data.results,
         currentPage: page,
@@ -46,7 +45,7 @@ export const fetchSurveyPosts = createAsyncThunk(
       return {
         posts: data.results,
         currentPage: page,
-        totalPages: data.totalPages,
+        totalPages: data.count,
         hasMore: data.next !== null,
         refresh,
       };
@@ -102,11 +101,12 @@ const postSlice = createSlice({
     surveyCurrentPage: 0,
     surveyTotalPages: 0,
     surveyHasMore: true,
-    isCreating: false, 
+    surveyLoading: true,
+    isCreating: false,
     surveyStats: {
       loading: false,
       error: null,
-      data: {}, 
+      data: {},
     },
   },
   reducers: {
@@ -192,10 +192,19 @@ const postSlice = createSlice({
       })
       .addCase(fetchSurveyPosts.fulfilled, (state, action) => {
         state.loading = false;
-        state.surveyPosts = action.payload.refresh
-          ? action.payload.posts
-          : [...state.surveyPosts, ...action.payload.posts];
-        state.surveyCurrentPage = action.payload.currentPage;
+        if (action.payload.refresh) {
+          state.surveyPosts = action.payload.posts;
+          state.surveyCurrentPage = 1;
+        } else {
+          //Lọc bỏ các bài đã tồn tại để tránh trùng key
+          const existingIds = new Set(state.surveyPosts.map((p) => p.id));
+          const uniqueNewPosts = action.payload.posts.filter(
+            (p) => !existingIds.has(p.id)
+          );
+          state.surveyPosts = [...state.surveyPosts, ...uniqueNewPosts];
+          state.surveyCurrentPage = action.payload.currentPage;
+        }
+
         state.surveyTotalPages = action.payload.totalPages;
         state.surveyHasMore = action.payload.hasMore;
       })

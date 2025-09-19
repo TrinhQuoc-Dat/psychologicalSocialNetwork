@@ -24,7 +24,6 @@ const Profile = () => {
     try {
       setLoading(true);
       const response = await getUserPosts(id, token, pageNumber, 5); 
-      console.log("response from API:", response);
       setPosts((prev) =>
         reset ? response.results : [...prev, ...response.results]
       );

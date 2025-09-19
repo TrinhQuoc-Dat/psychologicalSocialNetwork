@@ -2,7 +2,7 @@ import { addNotification } from "../features/notifications/notificationSlice";
 import { DOMAIN } from "./baseUrl";
 let socket = null;
 const token = localStorage.getItem("token");
-const BASE_WEBSOCKETM=`wss://${DOMAIN}`;
+const BASE_WEBSOCKETM=`ws://${DOMAIN}`;
 
 export const connectNotificationSocket = (dispatch) => {
   if (token === null || token === undefined) return;
@@ -16,8 +16,6 @@ export const connectNotificationSocket = (dispatch) => {
     const data = JSON.parse(event.data);
 
     if (data.notification) {
-      console.log("📩 Notification received:", data.notification);
-
       const notificationSound = new Audio("/sounds/notification.wav");
       notificationSound
         .play()
@@ -25,7 +23,7 @@ export const connectNotificationSocket = (dispatch) => {
 
       dispatch(addNotification(data.notification));
     } else if (data.message) {
-      console.log("📨 Server echo:", data.message);
+      console.log("Server echo:", data.message);
     }
   };
 

@@ -20,7 +20,7 @@ load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(BASE_DIR, "esocialnetworkapi", "resources", "data")
-DB_PATH = os.path.join(BASE_DIR, "esocialnetworkapi", "vectorstores", "db_faiss")
+DB_PATH = os.path.join(BASE_DIR, "esocialnetworkapi", "vectorstores", "db_faiss_1024")
 
 MAX_TOKENS_PER_REQUEST = 300_000  # giới hạn OpenAI
 encoding = tiktoken.encoding_for_model("text-embedding-3-small")
@@ -70,7 +70,7 @@ def create_db_from_files_openai():
     ]
 
     # Split thành chunks
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1400, chunk_overlap=256)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=128)
     chunks = text_splitter.split_documents(cleaned_documents)
 
     embeddings_list = []

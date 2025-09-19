@@ -1,5 +1,7 @@
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
+from oauth2_provider.models import AccessToken, RefreshToken, Application
 from esocialnetworkapi.models import User, Comment, UGroup, Contact, ThreadRoom, Notification, Post, GroupPost, PostImage, Reaction, SurveyPost, UserSurveyOption, SurveyQuestion,SurveyOption,SurveyDraft,SurveyDraftAnswer
 from esocialnetworkapi import serializers, perms, paginators
 from rest_framework import viewsets, generics, parsers, permissions, status
@@ -8,6 +10,7 @@ from django.utils import timezone
 from django.db.models import Exists, OuterRef
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from oauthlib.common import generate_token
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import ValidationError
@@ -20,6 +23,7 @@ import re
 from urllib.parse import urlparse
 from pathlib import Path
 from esocialnetworkapi import utils
+from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -28,15 +32,13 @@ llm = load_llm()
 TEMPLATE = """
     Bạn là một chuyên gia tâm lý. Hãy dựa vào context để trả lời ngắn gọn, rõ ràng (tối đa 3-5 câu), phù hợp với câu hỏi người dùng.  
     Yêu cầu:
-    1. Đồng cảm với cảm xúc của người dùng, giọng văn nhẹ nhàng, không phán xét. 
+    1. Giọng văn nhẹ nhàng, không phán xét. 
     2. Nếu không có đủ thông tin, hãy thừa nhận và đưa ra lời khuyên tổng quát.
     3. Nếu phát hiện người dùng người dùng bị stress, căng thẳng, buồn chán,... hãy đưa ra gợi ý thực tế, tích cực và an toàn.
-    4. Nếu phát hiện người dùng có ý nghĩ tự làm hại bản thân (người dùng nói về tự tử, tự làm hại bản thân, hoặc nguy hiểm tới tính mạng), 
+    4. Nếu phát hiện người dùng có ý nghĩ làm hại bản thân, tự tử, muốn chết (người dùng nói về tự tử, tự làm hại bản thân, hoặc nguy hiểm tới tính mạng), 
             KHÔNG đưa ra cách tự xử lý mà hãy khuyến khích họ tìm sự giúp đỡ từ chuyên gia tâm lý, 
             gọi ngay số điện thoại hỗ trợ khẩn cấp tại địa phương, hoặc liên hệ với bạn bè/người thân đáng tin cậy.
     5. Nếu là câu hỏi về lý thuyết chỉ cần trả lời câu hỏi, không đưa ra lời khuyên.
-    6. Nếu câu hỏi KHÔNG liên quan đến tâm lý học, hãy trả lời ngắn gọn, lịch sự rằng bạn chỉ hỗ trợ các chủ đề liên quan đến tâm lý, 
-       và gợi ý người dùng đặt câu hỏi khác phù hợp.
     Thông tin (context):  {context}
 
     Câu hỏi: {question}
@@ -58,7 +60,8 @@ class UserViewSet(viewsets.ViewSet, generics.UpdateAPIView):
 
     @action(methods=['get'], url_path='current-user', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
-        return Response(serializers.UserSerializer(request.user).data)
+        serializer = serializers.UserSerializer(request.user, context={'request': request})
+        return Response(serializer.data)
     
     @action(methods=['post'], detail=False, url_path="register", permission_classes=[permissions.AllowAny])
     def register(self, request):
@@ -95,15 +98,74 @@ class UserViewSet(viewsets.ViewSet, generics.UpdateAPIView):
             Q(first_name__icontains=query) |
             Q(last_name__icontains=query)
         )
+
+        groups = UGroup.objects.filter(
+            Q(group_name__icontains=query) |
+            Q(introduce__icontains=query) |
+            Q(location__icontains=query)
+        )
         # Phân trang
         paginator = PageNumberPagination()
         paginator.page_size = 5  # số bản ghi trên 1 trang, có thể chỉnh
         result_page = paginator.paginate_queryset(users, request)
 
-        data = serializers.UserSearchSerializer(result_page, many=True).data
-        return paginator.get_paginated_response(data)
-    
+        serializer_users = serializers.UserSearchSerializer(result_page, many=True).data
 
+        serializer_groups = serializers.UGroupSearchSerializer(groups[:5], many=True).data
+
+        return paginator.get_paginated_response({
+            "users": serializer_users,
+            "groups": serializer_groups
+        })
+    
+    @action(methods=['post'], detail=False, url_path='google-login', permission_classes=[permissions.AllowAny])
+    def google_login(self, request):
+        username = request.data.get("email").split('@')
+        if username != None and len(username) >= 1:
+            username = username[0]
+        else: 
+            return Response({"error": "username is None."}, status=status.HTTP_400_BAD_REQUEST)
+        photoURL = request.data.get("photoURL")
+        if photoURL is None:
+            photoURL = "https://img.pikbest.com/png-images/20240515/dog-or-cute-puppy-pic-_10564942.png!w700wp"
+        user, created = User.objects.get_or_create(username=username, defaults={
+                    "email": request.data.get("email"),
+                    "first_name": request.data.get("displayName"),
+                    "last_name": " ",
+                    "avatar": photoURL,
+                    "password": request.data.get("uid"),
+                })
+        app = Application.objects.first()
+        # Xoá token cũ (tránh trùng lặp)
+        AccessToken.objects.filter(user=user, application=app).delete()
+        RefreshToken.objects.filter(user=user, application=app).delete()
+
+        # Tạo token mới
+        expires = timezone.now() + timedelta(days=30)
+        access_token = AccessToken.objects.create(
+            user=user,
+            application=app,
+            token=generate_token(),
+            expires=expires,
+            scope="read write"
+        )
+
+        refresh_token = RefreshToken.objects.create(
+            user=user,
+            application=app,
+            token=generate_token(),
+            access_token=access_token
+        )
+        
+        return Response({
+                "access_token": access_token.token,
+                "expires_in": 360000000,
+                "token_type": "Bearer",
+                "scope": access_token.scope,
+                "refresh_token": refresh_token.token,
+                "role": user.role
+            })
+    
 # Tạo group
 class GroupCreateView(generics.CreateAPIView):
     queryset = UGroup.objects.all()
@@ -710,16 +772,12 @@ class ChatAPIView(APIView):
         query = request.data.get("query", "")
         if not query:
             return Response({"error": "Thiếu query"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if "tự tử" in query or "muốn chết" in query:
-            return Response({"result": "Tôi rất tiếc khi nghe điều này. Hãy tìm ngay sự giúp đỡ từ chuyên gia tâm lý hoặc gọi số khẩn cấp tại địa phương. Bạn không đơn độc."})
         # Tiền sử lý câu hỏi
-        
         faq_answer = find_faq_answer(query)
         if faq_answer:
             return Response({"result": faq_answer})
 
-        result = answer_query(query=query, llm=llm, template=TEMPLATE, qa_chain=qa_chain)
+        result = answer_query(query=query, llm=llm, template=TEMPLATE, qa_chain=qa_chain, user_id=request.user.id)
         response = {
             "result": result["result"],
         }

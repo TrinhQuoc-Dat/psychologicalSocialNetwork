@@ -5,9 +5,13 @@ from django.contrib.auth.hashers import make_password
 class UserSerializer(serializers.ModelSerializer):
     avatar = serializers.SerializerMethodField()
     cover = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id','first_name', 'last_name', 'username', 'email', 'avatar', 'role', 'cover', "last_login"]
+        fields = [
+            'id', 'first_name', 'last_name', 'username', 'email',
+            'avatar', 'role', 'cover', 'last_login'
+        ]
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
@@ -26,16 +30,26 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
-    
+
     def get_avatar(self, obj):
         if obj.avatar:
+            avatar_str = str(obj.avatar)
+            if avatar_str.startswith("http://") or avatar_str.startswith("https://"):
+                return avatar_str
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
             return obj.avatar.url
         return None
-    
+
     def get_cover(self, obj):
         if obj.cover:
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.cover.url)
             return obj.cover.url
         return None
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
     is_followed = serializers.SerializerMethodField()
@@ -66,6 +80,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     def get_avatar(self, obj):
         if obj.avatar:
+            avatar_str = str(obj.avatar)
+            if avatar_str.startswith("http://") or avatar_str.startswith("https://"):
+                return avatar_str
             return obj.avatar.url
         return None
     
@@ -94,9 +111,12 @@ class UserSearchSerializer(serializers.ModelSerializer):
 
     def get_avatar(self, obj):
         if obj.avatar:
+            avatar_str = str(obj.avatar.url)
+            if avatar_str.startswith("http://") or avatar_str.startswith("https://"):
+                return avatar_str
             return obj.avatar.url
         return None
-
+    
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
     confirm_password = serializers.CharField(write_only=True, required=True)
@@ -140,6 +160,20 @@ class GroupSerializer(serializers.ModelSerializer):
         model = UGroup
         fields = ['id', 'group_name', 'created_date', 'updated_date', 'creator']
         read_only_fields = ['creator']
+
+
+class UGroupSearchSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+    class Meta:
+        model = UGroup
+        fields = ['id', 'group_name', 'created_date', 'avatar', 'followers']
+
+    def get_avatar(self, obj):
+        if obj.avatar:
+            return obj.avatar.url
+        return None
+    
+
 
 class PostImageSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()

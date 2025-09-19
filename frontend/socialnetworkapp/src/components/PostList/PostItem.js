@@ -27,8 +27,6 @@ import { useSelector } from "react-redux";
 moment.locale("vi");
 
 const PostItem = ({ post, survey_id }) => {
-  console.log("posts: ", survey_id);
-
   const user = useSelector((state) => state.auth);
   const [showComment, setShowComment] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likeCount || 0);

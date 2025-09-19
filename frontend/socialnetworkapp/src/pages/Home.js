@@ -23,7 +23,6 @@ const Home = () => {
   const handleDeletedPostsClick = () => {
     navigate("/deleted-posts");
   };
-  console.log("user: ", user);
 
   useEffect(() => {
     if(user === null || user === undefined) 

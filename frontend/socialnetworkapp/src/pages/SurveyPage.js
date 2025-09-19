@@ -8,7 +8,7 @@ import SurveyCreateForm from "../components/survey/SurveyCreateForm";
 
 const SurveyPage = () => {
   const dispatch = useDispatch();
-  const { surveyPosts, loading, error, hasMore, currentPage } = useSelector(
+  const { surveyPosts, error, surveyHasMore, surveyCurrentPage, surveyLoading } = useSelector(
     (state) => state.posts
   );
   const role = useSelector((state) => state.auth.role);
@@ -18,8 +18,8 @@ const SurveyPage = () => {
   }, [dispatch]);
 
   const fetchMoreData = () => {
-    if (hasMore) {
-      dispatch(fetchSurveyPosts({ page: currentPage + 1, size: 5 }));
+    if (surveyHasMore) {
+      dispatch(fetchSurveyPosts({ page: surveyCurrentPage + 1, size: 5 }));
     }
   };
 
@@ -43,9 +43,9 @@ const SurveyPage = () => {
 
         <PostList
           posts={surveyPosts}
-          loading={loading}
+          loading={surveyLoading}
           error={error}
-          hasMore={hasMore}
+          hasMore={surveyHasMore}
           fetchMoreData={fetchMoreData}
           customEmptyMessage={
             <div className="text-center py-8 text-gray-500">

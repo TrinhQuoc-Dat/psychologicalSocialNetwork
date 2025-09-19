@@ -193,6 +193,11 @@ AUTH_USER_MODEL = 'esocialnetworkapi.User'
 import pymysql
 pymysql.install_as_MySQLdb()
 
+
+from pymongo import MongoClient
+import os
+
+
 SILENCED_SYSTEM_CHECKS = [
     "ckeditor.W001",  # CKEditor 4.22.1 warning
 ]
