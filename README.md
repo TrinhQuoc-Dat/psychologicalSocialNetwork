@@ -33,12 +33,13 @@ graph TD
 ```
 ---
 ## 📂 Cấu trúc dự án
+```
 psychologicalSocialNetwork/
 ├── socialnetworkapp/
 │   ├── esocialnetworkapi/
 │   │   ├── models.py
 │   │   ├── views.py
-│   │   ├── rag.py           # Pipeline RAG (LangChain)
+│   │   ├── rag.py      
 │   ├── notification/
 │   │   ├── consumers.py
 │   └── manage.py
@@ -49,6 +50,7 @@ psychologicalSocialNetwork/
 │   │   └── services/
 │   └── package.json
 └── README.md
+```
 ---
 ## ⚙️ Cài đặt & Chạy
 ## 1️⃣ Backend (Django)
