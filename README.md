@@ -30,7 +30,8 @@ graph TD
     A -->|Realtime| D[Firebase Firestore]
     B -->|Vector Query| E[LangChain + FAISS Index]
     E -->|Call LLM| F[OpenAI/HuggingFace Model]
-
+```
+---
 ## 📂 Cấu trúc dự án
 psychologicalSocialNetwork/
 ├── socialnetworkapp/
@@ -48,10 +49,11 @@ psychologicalSocialNetwork/
 │   │   └── services/
 │   └── package.json
 └── README.md
-
+---
 ## ⚙️ Cài đặt & Chạy
 ## 1️⃣ Backend (Django)
 
+```
 git clone https://github.com/<your-username>/psychologicalSocialNetwork.git
 cd psychologicalSocialNetwork/backend
 
@@ -67,5 +69,46 @@ python manage.py migrate
 
 # Chạy server + websocket
 daphne -b 0.0.0.0 -p 8000 backend.asgi:application
+```
+---
+## 2️⃣ Frontend (React)
 
+```
+cd psychologicalSocialNetwork/frontend
+npm install
+npm start
+```
+---
+## 3️⃣ Firebase
+
+Tạo project trên Firebase Console
+
+Bật Firestore + Realtime Database
+
+Lấy config và đặt vào frontend/src/firebase/config.js
+---
+## 🧠 Chatbot (RAG + LangChain)
+Thu thập dữ liệu: FAQ, bài viết cộng đồng, tài liệu tâm lý học.
+
+Chunk dữ liệu -> Embedding -> FAISS index.
+
+Truy vấn:
+
+Nhúng câu hỏi người dùng.
+
+Tìm top-k đoạn liên quan trong FAISS.
+
+Kết hợp vào prompt → gửi tới LLM.
+
+Trả về câu trả lời + tài liệu tham chiếu.
+---
+## 🛡️ Bảo mật & Quyền riêng tư
+
+🔒 Token-based Authentication (JWT).
+
+🛡️ Bảo vệ dữ liệu người dùng.
+
+🧾 Log tất cả tương tác với chatbot (ẩn danh nếu cần).
+
+⚠️ Hiển thị cảnh báo: “Chatbot chỉ mang tính hỗ trợ, không thay thế chuyên gia.”
 
