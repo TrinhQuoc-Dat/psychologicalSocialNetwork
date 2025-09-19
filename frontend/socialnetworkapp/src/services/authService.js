@@ -17,7 +17,6 @@ export const loginGoogleService = async ({ email, displayName, uid, photoURL}) =
 };
 
 export const register = async (userData) => {
-  console.log(userData);
   const response = await axios.post(`${BASE_URL}/api/users/register/`, userData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
@@ -29,6 +28,5 @@ export const getCurrentUser = async (token) => {
   const response = await axios.get(`${BASE_URL}/api/users/current-user/`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  console.log(response.data);
   return response.data;
 };

@@ -16,8 +16,6 @@ export const connectNotificationSocket = (dispatch) => {
     const data = JSON.parse(event.data);
 
     if (data.notification) {
-      console.log("📩 Notification received:", data.notification);
-
       const notificationSound = new Audio("/sounds/notification.wav");
       notificationSound
         .play()
@@ -25,7 +23,7 @@ export const connectNotificationSocket = (dispatch) => {
 
       dispatch(addNotification(data.notification));
     } else if (data.message) {
-      console.log("📨 Server echo:", data.message);
+      console.log("Server echo:", data.message);
     }
   };
 

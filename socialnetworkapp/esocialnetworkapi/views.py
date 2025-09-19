@@ -98,13 +98,25 @@ class UserViewSet(viewsets.ViewSet, generics.UpdateAPIView):
             Q(first_name__icontains=query) |
             Q(last_name__icontains=query)
         )
+
+        groups = UGroup.objects.filter(
+            Q(group_name__icontains=query) |
+            Q(introduce__icontains=query) |
+            Q(location__icontains=query)
+        )
         # Phân trang
         paginator = PageNumberPagination()
         paginator.page_size = 5  # số bản ghi trên 1 trang, có thể chỉnh
         result_page = paginator.paginate_queryset(users, request)
 
-        data = serializers.UserSearchSerializer(result_page, many=True).data
-        return paginator.get_paginated_response(data)
+        serializer_users = serializers.UserSearchSerializer(result_page, many=True).data
+
+        serializer_groups = serializers.UGroupSearchSerializer(groups[:5], many=True).data
+
+        return paginator.get_paginated_response({
+            "users": serializer_users,
+            "groups": serializer_groups
+        })
     
     @action(methods=['post'], detail=False, url_path='google-login', permission_classes=[permissions.AllowAny])
     def google_login(self, request):

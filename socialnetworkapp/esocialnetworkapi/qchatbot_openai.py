@@ -94,7 +94,8 @@ def answer_query(query, llm, template, qa_chain, user_id):
             history = get_chat_history(user_id, limit=10)
             if len(history) >= 10:
                 summary = summarize_chat(llm, history)
-                db_firestore.collection("chatAI").document('chat_'+str(user_id)).set({"summary": summary}, merge=True)
+                db_firestore.collection("chatAI").document('chat_'+
+                    str(user_id)).set({"summary": summary}, merge=True)
 
             # định kỳ phân tích cảm xúc
             if len(history) % 5 == 0:  # mỗi 5 message sẽ phân tích cảm xúc

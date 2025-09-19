@@ -9,7 +9,6 @@ const NotificationService = {
                 `${BASE_URL}/api/notifications/`,
                 { headers: Authorization() }
             );
-            console.log("/api/notifications/", response.data)
             return response.data;
         } catch (error) {
             console.error("Error fetching notifications:", error);

@@ -12,7 +12,7 @@ import useNotifications from "../../hooks/useNotifications";
 import { flushSync } from "react-dom";
 import axios from "axios";
 import BASE_URL from "../../services/baseUrl";
-import Authorization from"../until/AuthorizationComponent"
+import Authorization from "../until/AuthorizationComponent"
 
 
 const Navbar = ({ onOpenChat }) => {
@@ -25,61 +25,74 @@ const Navbar = ({ onOpenChat }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
 
   const { user } = useSelector((state) => state.auth);
   const location = useLocation();
   const currentPath = location.pathname;
+  const [searchResults, setSearchResults] = useState({ users: [], groups: [] });
+  // Debounce query
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [searchQuery]);
 
-  // Sử dụng hook useNotifications đã được cập nhật
-  const { notifications, handleMarkAsRead, handleMarkAllAsRead } =
-    useNotifications();
+  // Fetch khi debouncedQuery thay đổi
+  useEffect(() => {
+    const fetchSearchResults = async () => {
+      if (!debouncedQuery.trim()) {
+        setSearchResults({ users: [], groups: [] });
+        return;
+      }
+      try {
+        setLoading(true);
+        const res = await axios.get(
+          `${BASE_URL}/api/users/search/?q=${encodeURIComponent(debouncedQuery)}&page=1&size=5`,
+          {
+            headers: Authorization(),
+          }
+        );
+        console.log(res.data);
+        setSearchResults({
+          users: res.data.results?.users || [],
+          groups: res.data.results?.groups || [],
+        });
+      } catch (err) {
+        console.error("Search error:", err);
+        setSearchResults({ users: [], groups: [] });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  console.log('notifications', notifications)
+    fetchSearchResults();
+  }, [debouncedQuery]);
 
-  // Hàm xử lý tìm kiếm
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      //navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-      setShowSearchResults(false);
-    }
-  };
-
-  // Hàm gọi API search
-  const fetchSearchResults = async (query) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    try {
-      setLoading(true);
-      const res = await axios.get(
-        `${BASE_URL}/api/users/search/?q=${encodeURIComponent(query)}&page=1&size=5`,
-        {
-          headers: Authorization()
-        }
-      );
-      console.log(res.data.results)
-      setSearchResults(res.data.results || []);
-    } catch (err) {
-      console.error("Search error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Hàm xử lý thay đổi input search
+  //reset
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
     if (value) {
       setShowSearchResults(true);
-      fetchSearchResults(value);
     } else {
       setShowSearchResults(false);
-      setSearchResults([])
+      setSearchResults({ users: [], groups: [] });
+    }
+  };
+
+
+  // Sử dụng hook useNotifications đã được cập nhật
+  const { notifications, handleMarkAsRead, handleMarkAllAsRead } =
+    useNotifications();
+
+  // Hàm xử lý tìm kiếm
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setShowSearchResults(false);
     }
   };
 
@@ -216,30 +229,74 @@ const Navbar = ({ onOpenChat }) => {
               <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
                 {loading ? (
                   <div className="p-4 text-center text-gray-500">Đang tìm...</div>
-                ) : searchResults.length > 0 ? (
-                  <ul className="divide-y divide-gray-200">
-                    {searchResults.map((u) => (
-                      <li key={u.id}>
-                        <Link
-                          to={`/profile/${u.id}`}
-                          className="flex items-center px-4 py-2 hover:bg-gray-100"
-                          onClick={() => setShowSearchResults(false)}
-                        >
-                          <img
-                            src={u.avatar}
-                            alt={u.username}
-                            className="w-8 h-8 rounded-full mr-3"
-                          />
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {u.first_name} {u.last_name}
-                            </p>
-                            <p className="text-xs text-gray-500">@{u.username}</p>
-                          </div>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                ) : (searchResults.users.length > 0 || searchResults.groups.length > 0) ? (
+                  <div className="divide-y divide-gray-200">
+                    {/* Users */}
+                    {searchResults.users.length > 0 && (
+                      <div>
+                        <h4 className="px-4 pt-2 text-xs font-semibold text-gray-500 uppercase">
+                          Người dùng
+                        </h4>
+                        <ul className="divide-y divide-gray-200">
+                          {searchResults.users.map((u) => (
+                            <li key={`user-${u.id}`}>
+                              <Link
+                                to={`/profile/${u.id}`}
+                                className="flex items-center px-4 py-2 hover:bg-gray-100"
+                                onClick={() => setShowSearchResults(false)}
+                              >
+                                <img
+                                  src={u.avatar}
+                                  alt={u.username}
+                                  className="w-8 h-8 rounded-full mr-3"
+                                />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {u.first_name} {u.last_name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">@{u.username}</p>
+                                </div>
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Groups */}
+                    {searchResults.groups.length > 0 && (
+                      <div>
+                        <h4 className="px-4 pt-2 text-xs font-semibold text-gray-500 uppercase">
+                          Nhóm
+                        </h4>
+                        <ul className="divide-y divide-gray-200">
+                          {searchResults.groups.map((g) => (
+                            <li key={`group-${g.id}`}>
+                              <Link
+                                to={`/groups/${g.id}`}
+                                className="flex items-center px-4 py-2 hover:bg-gray-100"
+                                onClick={() => setShowSearchResults(false)}
+                              >
+                                <img
+                                  src={g.avatar}
+                                  alt={g.group_name}
+                                  className="w-8 h-8 rounded-full mr-3 object-cover"
+                                />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {g.group_name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {g.followers?.length || 0} người theo dõi
+                                  </p>
+                                </div>
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="p-4 text-center text-gray-500">
                     Không tìm thấy kết quả
@@ -247,6 +304,7 @@ const Navbar = ({ onOpenChat }) => {
                 )}
               </div>
             )}
+
           </div>
         </div>
 
@@ -337,11 +395,10 @@ const Navbar = ({ onOpenChat }) => {
                     setShowNotifications(!showNotifications);
                     setShowMessenger(false);
                   }}
-                  className={`p-2 rounded-full transition-colors duration-200 relative ${
-                    showNotifications
-                      ? "bg-blue-100 text-blue-600"
-                      : "hover:bg-gray-300 active:bg-gray-400 text-gray-600"
-                  }`}
+                  className={`p-2 rounded-full transition-colors duration-200 relative ${showNotifications
+                    ? "bg-blue-100 text-blue-600"
+                    : "hover:bg-gray-300 active:bg-gray-400 text-gray-600"
+                    }`}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

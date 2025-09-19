@@ -111,7 +111,7 @@ class UserSearchSerializer(serializers.ModelSerializer):
 
     def get_avatar(self, obj):
         if obj.avatar:
-            avatar_str = str(obj.avatar)
+            avatar_str = str(obj.avatar.url)
             if avatar_str.startswith("http://") or avatar_str.startswith("https://"):
                 return avatar_str
             return obj.avatar.url
@@ -160,6 +160,20 @@ class GroupSerializer(serializers.ModelSerializer):
         model = UGroup
         fields = ['id', 'group_name', 'created_date', 'updated_date', 'creator']
         read_only_fields = ['creator']
+
+
+class UGroupSearchSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+    class Meta:
+        model = UGroup
+        fields = ['id', 'group_name', 'created_date', 'avatar', 'followers']
+
+    def get_avatar(self, obj):
+        if obj.avatar:
+            return obj.avatar.url
+        return None
+    
+
 
 class PostImageSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()

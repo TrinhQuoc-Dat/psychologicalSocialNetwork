@@ -51,7 +51,6 @@ const DeletedPostList = () => {
     }
   };
 
-  console.log(deletedPosts);
 
   if (loading) {
     return (

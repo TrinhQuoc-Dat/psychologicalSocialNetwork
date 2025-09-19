@@ -3,8 +3,6 @@ import { formatDateFromArray } from '../../app/utils/dateUtils';
 import { FaUser, FaIdBadge, FaCalendarAlt, FaEnvelope, FaPhone } from 'react-icons/fa';
 
 const ProfileAbout = ({ user }) => {
-  console.log("user: ", user);
-
   const infoSections = [
     {
       title: 'Thông tin cơ bản',

@@ -5,7 +5,6 @@
   const AuthProvider = ({ children }) => {
     const dispatch = useDispatch();
     const { token, user, loading, error } = useSelector((state) => state.auth);
-    console.log("token in auth provider: ", token);
 
     useEffect(() => {
       if (error?.status === 401) {
